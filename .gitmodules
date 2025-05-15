@@ -4,3 +4,6 @@
 [submodule "models/TinyMistral-248M-Chat-v4"]
 	path = models/TinyMistral-248M-Chat-v4
 	url = https://huggingface.co/Felladrin/TinyMistral-248M-Chat-v4
+[submodule "models/gemma-3-4b-it"]
+	path = models/gemma-3-4b-it
+	url = https://huggingface.co/google/gemma-3-4b-it
