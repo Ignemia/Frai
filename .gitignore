@@ -1,0 +1,3 @@
+.venv/
+chat_app.log
+.vectordb/

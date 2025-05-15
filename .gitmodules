@@ -1,0 +1,6 @@
+[submodule "models/Gemma-Embeddings-v1.0"]
+	path = models/Gemma-Embeddings-v1.0
+	url = https://huggingface.co/google/Gemma-Embeddings-v1.0
+[submodule "models/TinyMistral-248M-Chat-v4"]
+	path = models/TinyMistral-248M-Chat-v4
+	url = https://huggingface.co/Felladrin/TinyMistral-248M-Chat-v4
