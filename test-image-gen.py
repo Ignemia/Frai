@@ -1,19 +1,3 @@
-prompt = """Masterful detailed illustration of a slightly slouched transgirl, consistent character design.
-Art style: vibrant cartoon with clean lines, smooth shading, and a slightly anime-inspired aesthetic.
-Character: long pastel blue hair with subtle pink streaks, gentle melancholic eyes, soft facial features.
-Clothing: wearing a comfortable oversized hoodie with prominent trans flag stripes (pastel blue, pink, white, pink, blue) horizontally across the chest and on the sleeves.
-She looks sad, perhaps holding a small, neatly lettered sign or a clear speech bubble saying "I do not like pickles".
-Background: simple, soft-focus, complementary colors that do not distract from the character.
-Overall mood: poignant yet hopeful.
-High quality, detailed, sharp focus, studio lighting, intricate details, consistent art style throughout."""
-
-negative_prompt = """deformed, ugly, amateur, bad art, blurry, pixelated, 
-grainy, low resolution, poorly drawn, distorted proportions, disfigured, 
-oversaturated, undersaturated, bad anatomy, inconsistent style, style change, 
-character morphing, photorealistic, 3D render, text errors, mutated hands, 
-extra limbs, fused fingers, too many fingers, watermark, signature, artist name,
-clashing colors, messy lines, inconsistent lighting."""
-
 import os
 import sys
 import logging
@@ -26,17 +10,107 @@ import threading  # Add threading module for progress tracking
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-logger.info("Setting up environment and checking dependencies...")
-
 # --- Configuration Variables ---
 MODEL_PATH = "./models/FLUX.1-dev"
-IMG_HEIGHT = 1080
-IMG_WIDTH = 1080
-NUM_INFERENCE_STEPS = 25
-GUIDANCE_SCALE = 7.0
-MAX_SEQUENCE_LENGTH = 512
+IMG_HEIGHT = 1080 # Image dimensions (Y)
+IMG_WIDTH = 1080 # Image dimensions (X)
+NUM_INFERENCE_STEPS = 50 # Number of diffusion steps
+GUIDANCE_SCALE = 7.0  # Scale for classifier-free guidance
+MAX_SEQUENCE_LENGTH = 512 # Maximum sequence length for the model
 CHECKPOINT_STEPS = 5  # Save intermediate image every N steps
+
+# Prompts
+PROMPT_TEXT = """Masterful detailed illustration of a slightly slouched transgirl, consistent character design.
+Art style: vibrant cartoon with clean lines, smooth shading, and a slightly anime-inspired aesthetic.
+Character: long pastel blue hair with subtle pink streaks, gentle melancholic eyes, soft facial features.
+Clothing: wearing a comfortable oversized hoodie with prominent trans flag stripes (pastel blue, pink, white, pink, blue) horizontally across the chest and on the sleeves.
+She looks sad, holding a small, white, rectangular sign in her hands. The sign features the clear, legible, black, sans-serif text "I DO NOT LIKE PICKLES" written horizontally in all capital letters.
+Background: simple, soft-focus, complementary colors that do not distract from the character.
+Overall mood: poignant yet hopeful.
+High quality, detailed, sharp focus, studio lighting, intricate details, consistent art style throughout."""
+
+NEGATIVE_PROMPT_TEXT = """deformed, ugly, amateur, bad art, blurry, pixelated, 
+grainy, low resolution, poorly drawn, distorted proportions, disfigured, 
+oversaturated, undersaturated, bad anatomy, inconsistent style, style change, 
+character morphing, photorealistic, 3D render, 
+text errors, illegible text, garbled text, misspelled text, jumbled text, unreadable text, text artifacts,
+mutated hands, extra limbs, fused fingers, too many fingers, watermark, signature, artist name,
+clashing colors, messy lines, inconsistent lighting."""
+
+# Logging Messages
+LOG_MSG_SETUP_ENV = "Setting up environment and checking dependencies..."
+LOG_MSG_INTERRUPT_RECEIVED = "Interrupt received, stopping generation gracefully..."
+LOG_MSG_PYTORCH_VERSION = "PyTorch version: {}"
+LOG_MSG_TORCHVISION_VERSION = "Torchvision version: {}"
+LOG_MSG_USING_LOCAL_MODEL = "Using local Flux.1-dev model as requested"
+LOG_MSG_LOADING_MODEL_PATH = "Loading Flux.1 model from local path: {}"
+LOG_MSG_CHECKING_GPU_MEM_PRE_LOAD = "Checking GPU memory before loading model..."
+LOG_MSG_GPU_NAME = "GPU: {}"
+LOG_MSG_GPU_TOTAL_MEM = "Total GPU memory: {:.2f} GB"
+LOG_MSG_GPU_AVAILABLE_MEM = "Available GPU memory: {:.2f} GB"
+LOG_MSG_GPU_AVAILABLE_MEM_AFTER_LOADING = "Available GPU memory after model loading: {:.2f} GB"
+LOG_MSG_CUDA_CACHE_CLEARED = "CUDA cache cleared"
+LOG_MSG_LOADING_MODEL_LOCAL_DIR = "Loading Flux.1 model from local directory..."
+LOG_MSG_MODEL_FILES_FOUND_PREFIX = "Found {} files in model directory: "
+LOG_MSG_MODEL_FILES_ELLIPSIS = "..."
+LOG_MSG_CPU_OFFLOAD = "Enabling sequential CPU offloading for maximum compatibility"
+LOG_MSG_COMPAT_MEM_OPTS = "Applying compatible memory optimizations"
+LOG_MSG_ATTN_SLICING = "Enabling attention slicing"
+LOG_MSG_MODEL_LOADED_COMPAT = "Flux model loaded with compatibility fixes in {:.2f} seconds"
+LOG_MSG_CTRL_C_PROMPT = "Press Ctrl+C at any time to stop generation"
+LOG_MSG_GENERATING_IMAGE = "Generating high-quality image with Flux.1..."
+LOG_MSG_GENERATION_PROGRESS = "Generation in progress... (Elapsed: {:.1f}s)"
+LOG_MSG_INTERMEDIATE_RESULT_SAVED_STEP = "Saved intermediate result at step {}"
+LOG_MSG_INTERMEDIATE_RESULT_SAVED_PATH = "Intermediate result saved to {}"
+LOG_MSG_PARTIAL_RESULT_SAVED_PATH = "Partial result saved to {}"
+LOG_MSG_IMAGE_GENERATION_STATUS_TIME = "Image generation {} in {:.2f} seconds"
+LOG_MSG_IMAGE_SAVED_PATH = "Image saved to {}"
+LOG_MSG_STARTING_RUN = "--- Starting run {} ---"
+
+# Warnings
+LOG_WARN_CUDA_NOT_AVAILABLE = "CUDA not available, using CPU (will be slow)"
+
+# Error Messages
+LOG_ERR_IMPORT = "Import error: {}"
+LOG_ERR_IMPORT_RESTART_NOTE = "Fix may require a script restart. Run the script again after installations."
+LOG_ERR_MODEL_DIR_NOT_FOUND = "Local model directory not found at {}. Please check the path."
+LOG_ERR_GPU_MEM_LOAD = "GPU memory error during model load: {}"
+LOG_ERR_GPU_MEM_INSUFFICIENT = "Your GPU does not have enough memory to run Flux.1, even with optimizations."
+LOG_ERR_MODEL_LOADING = "Error during model loading: {}"
+LOG_ERR_PIPELINE_NOT_LOADED_SKIP = "Pipeline not loaded. Skipping generation."
+LOG_ERR_PIPELINE_LOAD_FAIL_EXIT = "Failed to load the pipeline. Exiting."
+
+# Info Messages
+LOG_INFO_GPU_MEM_OPTIONS_HEADER = "Options to resolve GPU memory issues:"
+LOG_INFO_GPU_MEM_OPTION_COLAB = "1. Use Google Colab for free GPU access: https://colab.research.google.com/"
+LOG_INFO_GPU_MEM_OPTION_REPLICATE = "2. Use Replicate API for image generation: https://replicate.com/stability-ai/flux"
+LOG_INFO_GPU_MEM_OPTION_SMALLER_MODEL = "3. Try an even smaller model like SD 1.5"
+LOG_INFO_RECOMMEND_REPLICATE = "Recommended alternative: Use Replicate API for FLUX model: https://replicate.com/stability-ai/flux"
+LOG_INFO_KB_INTERRUPT_GENERATION = "Keyboard interrupt detected during generation"
+LOG_INFO_NO_PARTIAL_RESULT_KB = "No partial result available to save"
+LOG_INFO_NO_IMAGE_EARLY_INTERRUPT = "No image generated due to early interruption"
+LOG_INFO_KB_INTERRUPT_STOPPING = "Keyboard interrupt detected, stopping..."
+LOG_INFO_EXCEPTION_POST_INTERRUPT = "Exception occurred after interrupt was requested"
+LOG_INFO_INTERRUPT_STOPPING_RUNS = "Interrupt detected, stopping further runs."
+
+# Debug Messages
+LOG_DEBUG_INTERMEDIATE_RESULT_FAIL = "Failed to capture intermediate result: {}"
+LOG_DEBUG_MONKEY_PATCH_FAIL = "Could not enable intermediate result capturing: {}"
+
+# File Name Patterns
+FILENAME_PARTIAL_IMAGE_PATTERN = "./outputs/flux-1-partial-{}.png"
+FILENAME_OUTPUT_IMAGE_PATTERN = "./outputs/flux-1-output-{}.png"
+
+# String Constants
+STR_ATTN_SLICING_MODE = "max"
+STR_JOIN_SEPARATOR = ", "
+STR_STATUS_INTERRUPTED = "interrupted"
+STR_STATUS_COMPLETED = "completed"
+ERR_MSG_MODEL_PATH_NOT_FOUND = "Model path {} not found"
+
 # --- End Configuration Variables ---
+
+logger.info(LOG_MSG_SETUP_ENV)
 
 # Global flag for interrupt handling
 interrupt_requested = False
@@ -44,230 +118,200 @@ interrupt_requested = False
 # Define signal handler for Ctrl+C
 def signal_handler(sig, frame):
     global interrupt_requested
-    logger.info("Interrupt received, stopping generation gracefully...")
+    logger.info(LOG_MSG_INTERRUPT_RECEIVED)
     interrupt_requested = True
-    # Don't exit immediately, allow the code to clean up
 
 # Try to fix dependencies before continuing
 try:
-    # Now import the fixed packages
     import torch
     import torchvision
     from diffusers import FluxPipeline
     from PIL import Image
     
-    logger.info(f"PyTorch version: {torch.__version__}")
-    logger.info(f"Torchvision version: {torchvision.__version__}")
+    logger.info(LOG_MSG_PYTORCH_VERSION.format(torch.__version__))
+    logger.info(LOG_MSG_TORCHVISION_VERSION.format(torchvision.__version__))
     
 except ImportError as e:
-    logger.error(f"Import error: {e}")
-    logger.error("Fix may require a script restart. Run the script again after installations.")
+    logger.error(LOG_ERR_IMPORT.format(e))
+    logger.error(LOG_ERR_IMPORT_RESTART_NOTE)
     sys.exit(1)
 
-def main():
-    global interrupt_requested # Allow main to reset this if running in a loop later
-    interrupt_requested = False # Reset for each run
+# Global pipeline variable
+pipe = None
 
-    # Use local Flux.1 model
-    logger.info("Using local Flux.1-dev model as requested")
-
-    logger.info(f"Loading Flux.1 model from local path: {os.path.abspath(MODEL_PATH)}...")
+def load_pipeline():
+    global pipe
+    logger.info(LOG_MSG_USING_LOCAL_MODEL)
+    logger.info(LOG_MSG_LOADING_MODEL_PATH.format(os.path.abspath(MODEL_PATH)))
     start_time = time.time()
 
     try:
-        logger.info("Checking GPU memory before loading model...")
+        logger.info(LOG_MSG_CHECKING_GPU_MEM_PRE_LOAD)
         if torch.cuda.is_available():
-            logger.info(f"GPU: {torch.cuda.get_device_name(0)}")
-            logger.info(f"Total GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.2f} GB")
-            logger.info(f"Available GPU memory: {torch.cuda.mem_get_info()[0] / 1e9:.2f} GB")
+            logger.info(LOG_MSG_GPU_NAME.format(torch.cuda.get_device_name(0)))
+            logger.info(LOG_MSG_GPU_TOTAL_MEM.format(torch.cuda.get_device_properties(0).total_memory / 1e9))
+            logger.info(LOG_MSG_GPU_AVAILABLE_MEM.format(torch.cuda.mem_get_info()[0] / 1e9))
         else:
-            logger.warning("CUDA not available, using CPU (will be slow)")
+            logger.warning(LOG_WARN_CUDA_NOT_AVAILABLE)
 
-        # Apply performance optimizations, but prioritize compatibility
         try:
-            # First clear CUDA cache to free up memory
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-                logger.info("CUDA cache cleared")
+                logger.info(LOG_MSG_CUDA_CACHE_CLEARED)
             
-            # Try to fix compatibility issues with specific loading parameters
-            logger.info(f"Loading Flux.1 model from local directory...")
+            logger.info(LOG_MSG_LOADING_MODEL_LOCAL_DIR)
             if not os.path.exists(MODEL_PATH):
-                logger.error(f"Local model directory not found at {MODEL_PATH}. Please check the path.")
-                raise FileNotFoundError(f"Model path {MODEL_PATH} not found")
+                logger.error(LOG_ERR_MODEL_DIR_NOT_FOUND.format(MODEL_PATH))
+                raise FileNotFoundError(ERR_MSG_MODEL_PATH_NOT_FOUND.format(MODEL_PATH))
 
-            # List files in model directory for debugging
             model_files = os.listdir(MODEL_PATH)
-            logger.info(f"Found {len(model_files)} files in model directory: {', '.join(model_files[:5])}" + 
-                        ("..." if len(model_files) > 5 else ""))
+            log_model_files_msg = LOG_MSG_MODEL_FILES_FOUND_PREFIX.format(len(model_files)) + \
+                                  STR_JOIN_SEPARATOR.join(model_files[:5]) + \
+                                  (LOG_MSG_MODEL_FILES_ELLIPSIS if len(model_files) > 5 else "")
+            logger.info(log_model_files_msg)
             
-            # Load with default precision to avoid variant errors
-            pipe = FluxPipeline.from_pretrained(
-                MODEL_PATH,
-                # No torch_dtype specification to avoid compatibility issues
-            )
-            
-            # Apply CPU offloading instead of device mapping
-            logger.info("Enabling sequential CPU offloading for maximum compatibility")
+            pipe = FluxPipeline.from_pretrained(MODEL_PATH)
             pipe.enable_sequential_cpu_offload()
             
-            # Apply memory optimizations that are compatible
-            logger.info("Applying compatible memory optimizations")
+            logger.info(LOG_MSG_COMPAT_MEM_OPTS)
             if hasattr(pipe, "enable_attention_slicing"):
-                logger.info("Enabling attention slicing")
-                pipe.enable_attention_slicing("max")
+                logger.info(LOG_MSG_ATTN_SLICING)
+                pipe.enable_attention_slicing(STR_ATTN_SLICING_MODE)
             
-            logger.info(f"Flux model loaded with compatibility fixes in {time.time() - start_time:.2f} seconds")
+            logger.info(LOG_MSG_MODEL_LOADED_COMPAT.format(time.time() - start_time))
+            if torch.cuda.is_available():
+                logger.info(LOG_MSG_GPU_AVAILABLE_MEM_AFTER_LOADING.format(torch.cuda.mem_get_info()[0] / 1e9))
+            return pipe
             
-            # Set up the interrupt handler before generation
-            signal.signal(signal.SIGINT, signal_handler)
-            logger.info("Press Ctrl+C at any time to stop generation")
-            
-            # Use more conservative generation settings for stability
-            logger.info(f"Generating high-quality image with Flux.1...")
-            generation_start = time.time()
-            
-            try:
-                # For models that don't support callbacks, we'll use a progress tracking thread
-                
-                # Create a progress tracking thread since FluxPipeline doesn't support callbacks
-                def progress_tracker():
-                    start_time = time.time()
-                    last_log_time = start_time
-                    while not interrupt_requested and threading.current_thread().is_alive():
-                        current_time = time.time()
-                        # Log progress every 10 seconds
-                        if current_time - last_log_time >= 10:
-                            elapsed = current_time - start_time
-                            logger.info(f"Generation in progress... (Elapsed: {elapsed:.1f}s)")
-                            last_log_time = current_time
-                        time.sleep(1)
-                
-                # Start the progress tracker in a separate thread
-                tracker = threading.Thread(target=progress_tracker)
-                tracker.daemon = True  # This ensures the thread will exit when the main program exits
-                tracker.start()
-                
-                # Add explicit try/except for the generation to capture interruptions
-                try:
-                    last_checkpoint = 0
-                    partial_result = None
-                    
-                    # Attempt to get intermediate latents if the model supports it
-                    # This is a hack since Flux doesn't officially support callbacks
-                    original_forward = pipe.transformer.forward
-                    
-                    def forward_with_capture(*args, **kwargs):
-                        result = original_forward(*args, **kwargs)
-                        
-                        # Try to capture intermediate state from latents if possible
-                        if hasattr(pipe, 'decode_latents') and hasattr(pipe, 'latents'):
-                            try:
-                                current_step = getattr(pipe, '_current_step', 0)
-                                if current_step > last_checkpoint + CHECKPOINT_STEPS:
-                                    # Attempt to decode current latents
-                                    with torch.no_grad():
-                                        decoded = pipe.decode_latents(pipe.latents)
-                                        partial_image = pipe.image_processor.postprocess(decoded)[0]
-                                        partial_result = partial_image
-                                        last_checkpoint = current_step
-                                        logger.info(f"Saved intermediate result at step {current_step}")
-                            except Exception as e:
-                                # Capturing intermediate results failed, log and continue
-                                logger.debug(f"Failed to capture intermediate result: {e}")
-                        
-                        # Check for interrupt
-                        if interrupt_requested:
-                            # Try to save partial work before exiting
-                            if partial_result is not None:
-                                output_path = f"flux-1-partial-{int(time.time())}.png"
-                                partial_result.save(output_path)
-                                logger.info(f"Intermediate result saved to {os.path.abspath(output_path)}")
-                        
-                        return result
-                    
-                    # Try to monkey-patch the forward method to capture intermediates
-                    try:
-                        pipe.transformer.forward = forward_with_capture
-                    except Exception as e:
-                        logger.debug(f"Could not enable intermediate result capturing: {e}")
-                    
-                    # Generate the image
-                    image = pipe(
-                        prompt,
-                        height=IMG_HEIGHT,
-                        width=IMG_WIDTH,
-                        guidance_scale=GUIDANCE_SCALE,
-                        num_inference_steps=NUM_INFERENCE_STEPS,
-                        max_sequence_length=MAX_SEQUENCE_LENGTH
-                    ).images[0]
-                    
-                    # Restore original forward method
-                    try:
-                        pipe.transformer.forward = original_forward
-                    except:
-                        pass
-                        
-                except KeyboardInterrupt:
-                    logger.info("Keyboard interrupt detected during generation")
-                    
-                    # Try to save the partial result if available
-                    if partial_result is not None:
-                        output_path = f"flux-1-partial-{int(time.time())}.png"
-                        partial_result.save(output_path)
-                        logger.info(f"Partial result saved to {os.path.abspath(output_path)}")
-                        image = partial_result  # Set as the image to save
-                    else:
-                        logger.info("No partial result available to save")
-                        image = None
-                
-                logger.info(f"Image generation {'interrupted' if interrupt_requested else 'completed'} in {time.time() - generation_start:.2f} seconds")
-                
-                # Only save the image if it exists
-                if image is not None:
-                    # Save the image with Flux-specific name and timestamp
-                    output_path = f"flux-1-output-{int(time.time())}.png"
-                    image.save(output_path)
-                    logger.info(f"Image saved to {os.path.abspath(output_path)}")
-                else:
-                    logger.info("No image generated due to early interruption")
-                
-            except KeyboardInterrupt:
-                # Catch keyboard interrupt that might bypass the signal handler
-                logger.info("Keyboard interrupt detected, stopping...")
-            
-            except Exception as e:
-                if interrupt_requested:
-                    logger.info("Exception occurred after interrupt was requested")
-                else:
-                    # Re-raise if it wasn't due to our interrupt
-                    raise
-                    
         except (RuntimeError, torch.cuda.OutOfMemoryError) as e:
-            logger.error(f"GPU memory error: {str(e)}")
-            logger.error("Your GPU does not have enough memory to run Flux.1, even with optimizations.")
-            
-            # Provide helpful guidance
-            logger.info("Options to resolve GPU memory issues:")
-            logger.info("1. Use Google Colab for free GPU access: https://colab.research.google.com/")
-            logger.info("2. Use Replicate API for image generation: https://replicate.com/stability-ai/flux")
-            logger.info("3. Try an even smaller model like SD 1.5")
-            # raise # Optionally re-raise if you want script to stop on this error
-            return # Exit main if GPU error occurs
+            logger.error(LOG_ERR_GPU_MEM_LOAD.format(str(e)))
+            logger.error(LOG_ERR_GPU_MEM_INSUFFICIENT)
+            logger.info(LOG_INFO_GPU_MEM_OPTIONS_HEADER)
+            logger.info(LOG_INFO_GPU_MEM_OPTION_COLAB)
+            logger.info(LOG_INFO_GPU_MEM_OPTION_REPLICATE)
+            logger.info(LOG_INFO_GPU_MEM_OPTION_SMALLER_MODEL)
+            return None
             
     except Exception as e:
-        logger.error(f"Error during image generation: {str(e)}")
-        logger.info("Recommended alternative: Use Replicate API for FLUX model: https://replicate.com/stability-ai/flux")
-        # raise # Optionally re-raise
-        return # Exit main if other error occurs
+        logger.error(LOG_ERR_MODEL_LOADING.format(str(e)))
+        logger.info(LOG_INFO_RECOMMEND_REPLICATE)
+        return None
 
+def main(pipe_instance):
+    global interrupt_requested
+    interrupt_requested = False
+
+    if pipe_instance is None:
+        logger.error(LOG_ERR_PIPELINE_NOT_LOADED_SKIP)
+        return
+
+    signal.signal(signal.SIGINT, signal_handler)
+    logger.info(LOG_MSG_CTRL_C_PROMPT)
+    
+    logger.info(LOG_MSG_GENERATING_IMAGE)
+    generation_start = time.time()
+    
+    try:
+        def progress_tracker():
+            start_time = time.time()
+            last_log_time = start_time
+            while not interrupt_requested and threading.current_thread().is_alive():
+                current_time = time.time()
+                if current_time - last_log_time >= 10:
+                    elapsed = current_time - start_time
+                    logger.info(LOG_MSG_GENERATION_PROGRESS.format(elapsed))
+                    last_log_time = current_time
+                time.sleep(1)
+        
+        tracker = threading.Thread(target=progress_tracker)
+        tracker.daemon = True
+        tracker.start()
+        
+        try:
+            last_checkpoint = 0
+            partial_result = None
+            
+            original_forward = pipe_instance.transformer.forward
+            
+            def forward_with_capture(*args, **kwargs):
+                result = original_forward(*args, **kwargs)
+                
+                if hasattr(pipe_instance, 'decode_latents') and hasattr(pipe_instance, 'latents'):
+                    try:
+                        current_step = getattr(pipe_instance, '_current_step', 0)
+                        if current_step > last_checkpoint + CHECKPOINT_STEPS:
+                            with torch.no_grad():
+                                decoded = pipe_instance.decode_latents(pipe_instance.latents)
+                                partial_image = pipe_instance.image_processor.postprocess(decoded)[0]
+                                partial_result = partial_image
+                                last_checkpoint = current_step
+                                logger.info(LOG_MSG_INTERMEDIATE_RESULT_SAVED_STEP.format(current_step))
+                    except Exception as e:
+                        logger.debug(LOG_DEBUG_INTERMEDIATE_RESULT_FAIL.format(e))
+                
+                if interrupt_requested:
+                    if partial_result is not None:
+                        output_path = FILENAME_PARTIAL_IMAGE_PATTERN.format(int(time.time()))
+                        partial_result.save(output_path)
+                        logger.info(LOG_MSG_INTERMEDIATE_RESULT_SAVED_PATH.format(os.path.abspath(output_path)))
+                
+                return result
+            
+            try:
+                pipe_instance.transformer.forward = forward_with_capture
+            except Exception as e:
+                logger.debug(LOG_DEBUG_MONKEY_PATCH_FAIL.format(e))
+            
+            image = pipe_instance(
+                PROMPT_TEXT,
+                height=IMG_HEIGHT,
+                width=IMG_WIDTH,
+                guidance_scale=GUIDANCE_SCALE,
+                num_inference_steps=NUM_INFERENCE_STEPS,
+                negative_prompt=NEGATIVE_PROMPT_TEXT,
+                max_sequence_length=MAX_SEQUENCE_LENGTH
+            ).images[0]
+            
+            try:
+                pipe_instance.transformer.forward = original_forward
+            except:
+                pass
+                    
+        except KeyboardInterrupt:
+            logger.info(LOG_INFO_KB_INTERRUPT_GENERATION)
+            
+            if partial_result is not None:
+                output_path = FILENAME_PARTIAL_IMAGE_PATTERN.format(int(time.time()))
+                partial_result.save(output_path)
+                logger.info(LOG_MSG_PARTIAL_RESULT_SAVED_PATH.format(os.path.abspath(output_path)))
+                image = partial_result
+            else:
+                logger.info(LOG_INFO_NO_PARTIAL_RESULT_KB)
+                image = None
+        
+        status_message = STR_STATUS_INTERRUPTED if interrupt_requested else STR_STATUS_COMPLETED
+        logger.info(LOG_MSG_IMAGE_GENERATION_STATUS_TIME.format(status_message, time.time() - generation_start))
+        
+        if image is not None:
+            output_path = FILENAME_OUTPUT_IMAGE_PATTERN.format(int(time.time()))
+            image.save(output_path)
+            logger.info(LOG_MSG_IMAGE_SAVED_PATH.format(os.path.abspath(output_path)))
+        else:
+            logger.info(LOG_INFO_NO_IMAGE_EARLY_INTERRUPT)
+        
+    except KeyboardInterrupt:
+        logger.info(LOG_INFO_KB_INTERRUPT_STOPPING)
+    
+    except Exception as e:
+        if interrupt_requested:
+            logger.info(LOG_INFO_EXCEPTION_POST_INTERRUPT)
+        else:
+            raise
+            
 if __name__ == "__main__":
-    main()
-    # To run multiple times for consistency testing, you could do:
-    # for i in range(3):
-    #     logger.info(f"--- Starting run {i+1} ---")
-    #     main()
-    #     if interrupt_requested: # Check if Ctrl+C was pressed during a run
-    #         logger.info("Interrupt detected, stopping further runs.")
-    #         break
-    #     time.sleep(1) # Small delay between runs if needed
+    loaded_pipe = load_pipeline()
+
+    if loaded_pipe:
+        main(loaded_pipe)
+    else:
+        logger.error(LOG_ERR_PIPELINE_LOAD_FAIL_EXIT)
