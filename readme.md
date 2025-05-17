@@ -11,10 +11,11 @@ Therefore I want to provide an open-source alternative that will allow users to 
 ## Implementation
 
 ### Models Used
--   **Voice Processing**: `pyannote-segmentation` + `speaker-diarization`
--   **Vector DB Embeddings**: `gemma-embeddings`
--   **Text Generation**: `gemma-3-4b-it` (this model can be replaced with other compatible models)
--   **Image Generation**: `flux.1`
+-   **Voice Processing**: `pyannote/segmentation-3.0` + `pyannote/speaker-diarization-3.1`
+-   **Vector DB Embeddings**: `google/Gemma-Embeddings-v1.0`
+-   **Text Generation**: `google/gemma-3-4b-it` (this model can be replaced with other compatible models)
+-   **Image Generation**: `black-forest-labs/FLUX.1-dev`
+-   **Sentiment analysis**: `tabularisai/multilingual-sentiment-analysis`
 
 ## How It Works
 The basic workflow is as follows:
