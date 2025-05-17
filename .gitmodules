@@ -13,3 +13,6 @@
 [submodule "models/speaker-diarization-3.1"]
 	path = models/speaker-diarization-3.1
 	url = https://huggingface.co/pyannote/speaker-diarization-3.1
+[submodule "models/multilingual-sentiment-analysis"]
+	path = models/multilingual-sentiment-analysis
+	url = https://huggingface.co/tabularisai/multilingual-sentiment-analysis
