@@ -31,5 +31,5 @@ app.include_router(api, tags=["api"])
 app.include_router(user_router, tags=["user"])
 
 
-if __name__ == "__main__":
+def start_backend_api():
     uvicorn.run(app, host="0.0.0.0", port=8000)

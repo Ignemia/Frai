@@ -1,3 +1,6 @@
+from api.api import start_backend_api
+
+
 def main():
     try:
         start_backend_api()
