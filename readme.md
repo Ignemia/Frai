@@ -76,6 +76,3 @@ To run Personal Chatter effectively with all its features, your system should me
     ```bash
     python main.py
     ```
-
----
-*Note: This is a basic outline. Specific model setup, API key configurations (e.g., for Brave Search API), and detailed dependencies might require further documentation within the project.*
