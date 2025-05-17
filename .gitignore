@@ -1,6 +1,10 @@
 .venv/
-chat_app.log
 .vectordb/
 outputs/
-*.pyc
 __pycache__/
+
+*.db
+*.sqlite
+*.log
+*.pyc
+local.env
