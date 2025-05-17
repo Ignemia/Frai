@@ -1,17 +1,23 @@
-from api.api import start_backend_api
-
+import services.chat.pipeline as chat_pipeline
 
 def main():
-    try:
-        start_backend_api()
-
-        load_image_pipeline()
-        load_embeddings_pipeline()
-        load_text_pipeline()
-        load_audio_pipeline()
-
-    except Exception as e:
-        print(f"Error occurred: {e}")
+    print("\nModel is loaded and ready to chat!")
+    print("Enter your message (or 'quit' to exit):")
+    
+    while True:
+        user_input = input("> ")
+        if user_input.lower() in ["quit", "exit", "q"]:
+            break
+        
+        print("\nAI friend: ", end="", flush=True)
+        # Use streaming to see token-by-token generation
+        chat_pipeline.send_query(
+            message=user_input,
+            stream=True,
+            max_tokens=1024  # Increased token limit for more complete responses
+        )
+        print("\n")
 
 if __name__ == "__main__":
+    # Model is already loading when this module is imported
     main()
