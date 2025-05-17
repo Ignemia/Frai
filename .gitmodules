@@ -1,12 +1,15 @@
 [submodule "models/Gemma-Embeddings-v1.0"]
 	path = models/Gemma-Embeddings-v1.0
 	url = https://huggingface.co/google/Gemma-Embeddings-v1.0
-[submodule "models/TinyMistral-248M-Chat-v4"]
-	path = models/TinyMistral-248M-Chat-v4
-	url = https://huggingface.co/Felladrin/TinyMistral-248M-Chat-v4
 [submodule "models/gemma-3-4b-it"]
 	path = models/gemma-3-4b-it
 	url = https://huggingface.co/google/gemma-3-4b-it
 [submodule "models/FLUX.1-dev"]
 	path = models/FLUX.1-dev
 	url = https://huggingface.co/black-forest-labs/FLUX.1-dev
+[submodule "models/pyannote-segmentation-3.0"]
+	path = models/pyannote-segmentation-3.0
+	url = https://huggingface.co/4evergr8/pyannote-segmentation-3.0
+[submodule "models/speaker-diarization-3.1"]
+	path = models/speaker-diarization-3.1
+	url = https://huggingface.co/pyannote/speaker-diarization-3.1
