@@ -40,24 +40,34 @@ To run Personal Chatter effectively with all its features, your system should me
 -   **Operating System**: Windows, Linux, or macOS (ensure compatibility of all model dependencies).
 
 ## Installation
-1.  **Clone the repository**:
+1. **Clone the repository**  
+    HTTPS
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/Ignemia/personal-chatter.git --recursive
+    cd personal-chatter
+    ```  
+
+    SSH
+    ```bash
+    git clone git@github.com:Ignemia/personal-chatter.git --recursive
     cd personal-chatter
     ```
-    *(Replace `<repository-url>` with the actual URL of your repository.)*
 
 2.  **Install dependencies**:
-    It's recommended to use a virtual environment.
-    ```bash
-    python -m venv .venv
-    # On Windows:
-    # .venv\Scripts\activate
-    # On macOS/Linux:
-    # source .venv/bin/activate
-    pip install -r requirements.txt
-    ```
-    *(Ensure `requirements.txt` is present in your repository and lists all necessary packages.)*
+    It's recommended to use a virtual environment.  
+    1. Install CUDA or ROCm
+        - [cuda](https://developer.nvidia.com/cuda-toolkit)
+        - [ROCm](https://www.amd.com/en/products/software/rocm.html)
+    2. Install torch based on your device specs: [guide](https://pytorch.org/get-started/locally/)  
+    3. 
+        ```bash
+        python -m venv .venv
+        # On Windows:
+        # .venv\Scripts\activate
+        # On macOS/Linux:
+        # source .venv/bin/activate
+        pip install -r requirements.txt
+        ```
 
 ## Running the Application
 1.  **Navigate to the project directory** (if you are not already there).
