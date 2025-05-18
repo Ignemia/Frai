@@ -1,14 +1,14 @@
 import logging
 from typing import Optional
 from .connection import start_connection_pool, get_db_cursor
+# Import state management functions
 from services.state import get_state, set_state
-from .passwords import create_passwords_table
 
 logger = logging.getLogger(__name__)
 
-def create_users_table() -> bool:
+def create_chat_table() -> bool:
     """
-    Create the users table if it doesn't exist.
+    Create the chats table if it doesn't exist.
     Returns True if successful, False otherwise.
     """
     try:
@@ -18,33 +18,35 @@ def create_users_table() -> bool:
             cursor.execute("""
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables 
-                    WHERE table_name = 'users'
+                    WHERE table_name = 'chats'
                 );
             """)
             
             table_exists = cursor.fetchone()[0]
             
             if not table_exists:
-                logger.info("Creating users table...")
-                # Create the table with CHECK constraint to ensure positive values (unsigned)
+                logger.info("Creating chats table...")
+                # Create the table
+                # Note: PostgreSQL doesn't have UNSIGNED INT type, using SERIAL instead
                 cursor.execute("""
-                    CREATE TABLE users (
-                        user_id SERIAL PRIMARY KEY CHECK (user_id > 0),
-                        name TEXT NOT NULL
+                    CREATE TABLE chats (
+                        chat_id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL CHECK (user_id > 0),
+                        contents TEXT NOT NULL
                     );
                 """)
-                logger.info("Users table created successfully")
+                logger.info("Chats table created successfully")
             else:
-                logger.info("Users table already exists")
+                logger.info("Chats table already exists")
                 
         return True
     except Exception as e:
-        logger.error(f"Error creating users table: {e}")
+        logger.error(f"Error creating chats table: {e}")
         return False
 
-def initialize_users_database() -> bool:
+def initialize_database() -> bool:
     """
-    Initialize the database connection and create users table.
+    Initialize the database connection and create necessary tables.
     Returns True if successful, False otherwise.
     """
     try:
@@ -61,17 +63,12 @@ def initialize_users_database() -> bool:
             # Store the pool in global state
             set_state('db_connection_pool', pool)
             
-        # Create the users table
-        if not create_users_table():
+        # Create the chats table
+        if not create_chat_table():
             return False
             
-        # Create the passwords table (which depends on users table)
-        if not create_passwords_table():
-            logger.error("Failed to create passwords table")
-            return False
-            
-        logger.info("Users and passwords database initialization completed successfully")
+        logger.info("Database initialization completed successfully")
         return True
     except Exception as e:
-        logger.error(f"Error initializing users database: {e}")
+        logger.error(f"Error initializing database: {e}")
         return False

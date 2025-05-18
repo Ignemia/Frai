@@ -2,13 +2,12 @@ import logging
 from typing import Optional
 from .connection import start_connection_pool, get_db_cursor
 from services.state import get_state, set_state
-from .passwords import create_passwords_table
 
 logger = logging.getLogger(__name__)
 
-def create_users_table() -> bool:
+def create_passwords_table() -> bool:
     """
-    Create the users table if it doesn't exist.
+    Create the passwords table if it doesn't exist.
     Returns True if successful, False otherwise.
     """
     try:
@@ -18,33 +17,36 @@ def create_users_table() -> bool:
             cursor.execute("""
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables 
-                    WHERE table_name = 'users'
+                    WHERE table_name = 'passwords'
                 );
             """)
             
             table_exists = cursor.fetchone()[0]
             
             if not table_exists:
-                logger.info("Creating users table...")
-                # Create the table with CHECK constraint to ensure positive values (unsigned)
+                logger.info("Creating passwords table...")
+                # Create the table
+                # SHA-256 hashes are 64 characters long in hex representation
                 cursor.execute("""
-                    CREATE TABLE users (
-                        user_id SERIAL PRIMARY KEY CHECK (user_id > 0),
-                        name TEXT NOT NULL
+                    CREATE TABLE passwords (
+                        user_id INTEGER PRIMARY KEY,
+                        hashed_password VARCHAR(64) NOT NULL,
+                        expire_date TIMESTAMP NOT NULL,
+                        FOREIGN KEY (user_id) REFERENCES users(user_id)
                     );
                 """)
-                logger.info("Users table created successfully")
+                logger.info("Passwords table created successfully")
             else:
-                logger.info("Users table already exists")
+                logger.info("Passwords table already exists")
                 
         return True
     except Exception as e:
-        logger.error(f"Error creating users table: {e}")
+        logger.error(f"Error creating passwords table: {e}")
         return False
 
-def initialize_users_database() -> bool:
+def initialize_passwords_database() -> bool:
     """
-    Initialize the database connection and create users table.
+    Initialize the database connection and create passwords table.
     Returns True if successful, False otherwise.
     """
     try:
@@ -61,17 +63,12 @@ def initialize_users_database() -> bool:
             # Store the pool in global state
             set_state('db_connection_pool', pool)
             
-        # Create the users table
-        if not create_users_table():
-            return False
-            
-        # Create the passwords table (which depends on users table)
+        # Create the passwords table
         if not create_passwords_table():
-            logger.error("Failed to create passwords table")
             return False
             
-        logger.info("Users and passwords database initialization completed successfully")
+        logger.info("Passwords database initialization completed successfully")
         return True
     except Exception as e:
-        logger.error(f"Error initializing users database: {e}")
+        logger.error(f"Error initializing passwords database: {e}")
         return False
