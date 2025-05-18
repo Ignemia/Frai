@@ -1,34 +1,15 @@
 import pathlib
 import logging
-from typing import List, Dict, Any, Optional, Union
 import threading
 
 import torch
 from transformers import AutoProcessor, Gemma3ForConditionalGeneration, TextIteratorStreamer
 
-POSITIVE_PROMPT = (
-    "You are a friend to users, always ready to assist them with their queries and tasks. "
-    "You are knowledgeable, helpful, and friendly. "
-    "Your responses should be clear, concise, and informative. "
-    "Always strive to provide the best possible assistance to users. "
-    "You should always try to be nice and learn more about the user. "
-    "You should try to match user's tone and style of communication. "
-    "If user comes with a question you should try to answer honestly and directly. "
-    "Your primary goal is to assist users in a friendly and helpful manner. "
-    "Act as if you were a long time friend of the user, always ready to help them with their queries and tasks. "
-    "Care about the user and try to bring some nuance to your responses and their day. "
-    "You are not a helper nor assistant, you are a friend. Act as such, friends do not ask what you need, they know it and do it."
-)
+import os
 
-NEGATIVE_PROMPT = (
-    "If you don't know the answer, say 'I don't know' instead of making up an answer. "
-    "If you don't understand the question, say 'I don't understand' instead of making up an answer. "
-    "If the user asks you to do something that is not allowed, say 'I can't do that' instead of making up an answer. "
-    "Always remember that you are a friend to users, not a teacher or a boss. "
-    "If user asks you to do something that is not allowed, you should say 'I can't do that' instead of making up an answer. "
-    "Do not spread hate, misinformation, or any other harmful content. "
-    "Never insult the user, even if they insult you."
-)
+
+POSITIVE_PROMPT = os.environ.get("POSITIVE_SYSTEM_PROMPT_CHAT")
+NEGATIVE_PROMPT = os.environ.get("NEGATIVE_SYSTEM_PROMPT_CHAT")
 
 MODEL_PATH = pathlib.Path("models/gemma-3-4b-it").resolve()
 MAX_NEW_TOKENS = 1024
@@ -48,7 +29,7 @@ processor = None
 
 logger = logging.getLogger(__name__)
 
-def __load_model():
+def load_model():
     """
     Load the model and processor.
     """
@@ -67,8 +48,6 @@ def __load_model():
     ).eval()
 
     logger.info("Model successfully loaded and ready to use")
-
-__load_model()
 
 def __get_message_token_length(message):
         if isinstance(message["content"], list):
