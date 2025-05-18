@@ -62,9 +62,11 @@ def retry_connection_creation(max_retries: int, retry_delay: int) -> Optional[Th
 def start_connection_pool(max_retries: int = 3, retry_delay: int = 5) -> Optional[ThreadedConnectionPool]:
     existing_pool = get_existing_pool()
     if existing_pool is not None:
+        logger.info("Using existing database connection pool.")
         return existing_pool
         
     if not validate_db_config():
+        logger.error("Database configuration validation failed. Cannot start connection pool.")
         return None
     
     return retry_connection_creation(max_retries, retry_delay)
@@ -74,14 +76,19 @@ def get_db_connection():
     _pool = get_existing_pool()
     
     if _pool is None:
-        raise RuntimeError("Database connection pool not initialized")
+        logger.info("No existing connection pool found. Starting a new one...")
+        _pool = create_connection_pool()
+        
         
     conn = None
     try:
         conn = _pool.getconn()
+        if conn is None:
+            raise psycopg2.Error("Failed to get a connection from the pool")
         yield conn
     finally:
         if conn and _pool:
+            logger.info("Returning connection to the pool")
             _pool.putconn(conn)
 
 @contextmanager

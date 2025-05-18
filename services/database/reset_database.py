@@ -12,7 +12,7 @@ from services.state import get_state, set_state
 
 # Import initialization functions to recreate tables after reset
 from .create_user_table import create_users_table
-from .create_chat_database import create_chat_table
+from .create_chat_table import create_chat_table
 from .passwords import create_passwords_table
 
 logger = logging.getLogger(__name__)

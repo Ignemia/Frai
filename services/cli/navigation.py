@@ -1,3 +1,6 @@
+from services.cli.login_command import login_command
+from services.cli.register_command import register_command
+
 def is_command(message):
     if not message.startswith("/"):
         return False
@@ -15,7 +18,7 @@ def parse_command(message):
 
 
 def help_command():
-    print("Available commands: help, back, quit")
+    print("Available commands: help, back, login, register, quit")
 
 def quit_command():
     print("Exiting the application. Goodbye!")
@@ -32,6 +35,10 @@ def handle_command(command, args):
             back_command()
         case "quit" | "exit" | "q":
             quit_command()
+        case "login":
+            login_command(args.strip())
+        case "register":
+            register_command(args.strip())
         case _:
             print(f"Unknown command: {command}")
             help_command()

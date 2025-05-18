@@ -6,7 +6,7 @@ import os
 from services.database.connection import start_connection_pool
 from services.cli.navigation import is_command, parse_command, handle_command
 
-dotenv.load_dotenv(dotenv_path=pathlib.Path("local.env").resolve().absolute())
+dotenv.load_dotenv(dotenv_path=pathlib.Path(".env").resolve().absolute())
 
 WELCOME_MESSAGE = "Hello! I'm your Personal Chatter companion, ready to chat and help. Simply type your message below to get started, or use /help to see available commands."
 
