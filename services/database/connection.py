@@ -6,13 +6,19 @@ from typing import Optional
 from psycopg2.pool import ThreadedConnectionPool
 from contextlib import contextmanager
 from services.state import get_state, set_state
+from .create_chat_table import initialize_chats_database
+from .create_password_table import initialize_passwords_database
+from .create_user_table import initialize_users_database
 
 logger = logging.getLogger(__name__)
 
 def validate_db_config() -> bool:
     required_vars = ["POSTGRES_DATABASE", "POSTGRES_HOST", "POSTGRES_USER", "POSTGRES_PASSWORD"]
     missing = [var for var in required_vars if not os.environ.get(var)]
-    
+   
+    for var in required_vars:
+        logger.info(f"Environment variable '{var}' is set to: {os.environ.get(var)}")
+
     if missing:
         logger.error(f"Missing required environment variables: {', '.join(missing)}")
         return False
@@ -24,6 +30,8 @@ def get_existing_pool() -> Optional[ThreadedConnectionPool]:
 
 def create_connection_pool() -> Optional[ThreadedConnectionPool]:
     try:
+        validate_db_config()
+        
         pool = ThreadedConnectionPool(
             minconn=1, 
             maxconn=20,
@@ -104,3 +112,34 @@ def get_db_cursor(commit=False):
             raise
         finally:
             cursor.close()
+            
+def check_database_table_presence() -> bool:
+    with get_db_cursor() as cursor:
+        cursor.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users');")
+        users_table_exists = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'passwords');")
+        passwords_table_exists = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'chats');")
+        chats_table_exists = cursor.fetchone()[0]
+
+        return users_table_exists and passwords_table_exists and chats_table_exists
+    
+def initiate_tables():
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            if not initialize_users_database(cursor):
+                logger.error("Failed to create users table.")
+                return False
+            if not initialize_passwords_database(cursor):
+                logger.error("Failed to create passwords table.")
+                return False
+            if not initialize_chats_database(cursor):
+                logger.error("Failed to create chats table.")
+                return False
+            logger.info("All tables created successfully.")
+    except Exception as e:
+        logger.error(f"Error creating tables: {e}")
+        return False
+    return True
