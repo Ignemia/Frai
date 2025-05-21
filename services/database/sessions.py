@@ -18,13 +18,13 @@ def generate_session_token(user_id, session_duration_hours=24):
     with get_db_cursor() as cursor:
         cursor.execute(
             "INSERT INTO sessions (session_id, user_id, expires_at) VALUES (%s, %s, %s);",
-            (session_id, user_id, expires_at)
+            (str(session_id), user_id, expires_at)  # Convert UUID to string
         )
         cursor.connection.commit()
         logger.debug(f"Session token stored successfully")
     
     logger.info(f"Session token generated for user ID: {user_id}")
-    return str(session_id)
+    return str(session_id)  # Return session_id as string
 
 def verify_session_token(session_token):
     """
@@ -33,13 +33,13 @@ def verify_session_token(session_token):
     """
     logger.info(f"Verifying session token")
     try:
-        # Convert string to UUID object
-        session_id = uuid.UUID(session_token)
+        # Convert string to UUID object for comparison, but use string in query
+        session_id_str = str(session_token)
         
         with get_db_cursor() as cursor:
             cursor.execute(
                 "SELECT user_id, expires_at FROM sessions WHERE session_id = %s;",
-                (session_id,)
+                (session_id_str,)  # Use string representation
             )
             result = cursor.fetchone()
             

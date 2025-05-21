@@ -162,3 +162,66 @@ def initiate_tables():
         logger.error(f"Error creating tables: {e}")
         return False
     return True
+
+def fix_chats_table_schema(cursor):
+    """
+    Fix the chats table schema to make sure it has consistent columns.
+    """
+    logger.info("Checking chats table schema...")
+    try:
+        # Check which columns exist
+        cursor.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'chats';
+        """)
+        
+        columns = [row[0] for row in cursor.fetchall()]
+        logger.debug(f"Current columns in chats table: {columns}")
+        
+        # Check if we have a contents column
+        if 'contents' not in columns and 'encrypted_contents' not in columns:
+            logger.info("Adding contents column to chats table")
+            cursor.execute("ALTER TABLE chats ADD COLUMN contents TEXT NOT NULL DEFAULT '';")
+        
+        # Check if we have a chat_name column
+        if 'chat_name' not in columns:
+            logger.info("Adding chat_name column to chats table")
+            cursor.execute("ALTER TABLE chats ADD COLUMN chat_name TEXT NOT NULL DEFAULT 'Untitled Chat';")
+        
+        # Check if we have a last_modified column
+        if 'last_modified' not in columns:
+            logger.info("Adding last_modified column to chats table")
+            cursor.execute("ALTER TABLE chats ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;")
+        
+        cursor.connection.commit()
+        logger.info("Chats table schema check complete")
+        return True
+    except Exception as e:
+        logger.error(f"Error fixing chats table schema: {e}")
+        return False
+
+def upgrade_database_schema():
+    """
+    Perform a check and upgrade of all database tables schema.
+    This ensures all columns are present as expected.
+    """
+    logger.info("Checking and upgrading database schema if needed...")
+    try:
+        with get_db_cursor() as cursor:
+            # Fix the chats table schema first
+            if not fix_chats_table_schema(cursor):
+                return False
+            
+            # Then run the usual table initializations
+            from services.database.create_chat_table import initialize_chats_database
+            initialize_chats_database(cursor)
+            
+            # Add other table initializations here as needed
+            
+            cursor.connection.commit()
+            logger.info("Database schema check and upgrade completed")
+            return True
+    except Exception as e:
+        logger.error(f"Failed to upgrade database schema: {e}")
+        return False
