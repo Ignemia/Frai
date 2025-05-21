@@ -24,14 +24,26 @@ def validate_db_config() -> bool:
         return False
     return True
 
+def select_all_from_table(table_name: str) -> Optional[list]:
+    """
+    Select all rows from a given table.
+    Returns a list of rows if successful, None otherwise.
+    """
+    with get_db_cursor() as cursor:
+        try:
+            cursor.execute(f"SELECT * FROM {table_name};")
+            rows = cursor.fetchall()
+            logger.info(f"Fetched {len(rows)} rows from {table_name}.")
+            return rows
+        except Exception as e:
+            logger.error(f"Error selecting from {table_name}: {e}")
+            return None
+
 def get_existing_pool() -> Optional[ThreadedConnectionPool]:
-    # Get from global state instead of module variable
     return get_state('db_connection_pool')
 
 def create_connection_pool() -> Optional[ThreadedConnectionPool]:
     try:
-        validate_db_config()
-        
         pool = ThreadedConnectionPool(
             minconn=1, 
             maxconn=20,
