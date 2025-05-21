@@ -9,6 +9,7 @@ from services.state import get_state, set_state
 from .create_chat_table import initialize_chats_database
 from .create_password_table import initialize_passwords_database
 from .create_user_table import initialize_users_database
+from .create_session_table import initialize_sessions_database
 
 logger = logging.getLogger(__name__)
 
@@ -135,8 +136,11 @@ def check_database_table_presence() -> bool:
         
         cursor.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'chats');")
         chats_table_exists = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'sessions');")
+        sessions_table_exists = cursor.fetchone()[0]
 
-        return users_table_exists and passwords_table_exists and chats_table_exists
+        return users_table_exists and passwords_table_exists and chats_table_exists and sessions_table_exists
     
 def initiate_tables():
     try:
@@ -149,6 +153,9 @@ def initiate_tables():
                 return False
             if not initialize_chats_database(cursor):
                 logger.error("Failed to create chats table.")
+                return False
+            if not initialize_sessions_database(cursor):
+                logger.error("Failed to create sessions table.")
                 return False
             logger.info("All tables created successfully.")
     except Exception as e:

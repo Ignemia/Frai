@@ -1,5 +1,11 @@
+from services.state import set_state
+
 from services.cli.login_command import login_command
 from services.cli.register_command import register_command
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 def is_command(message):
     if not message.startswith("/"):
@@ -35,10 +41,26 @@ def handle_command(command, args):
             back_command()
         case "quit" | "exit" | "q":
             quit_command()
+            
+        case "new_chat" | "new":
+            print("Creating a new chat...")
+            # Implement new chat logic here
+        case "open_chat" | "open":
+            print("Opening an existing chat...")
+            # Implement open chat logic here
+            
         case "login":
-            login_command(args.strip())
+            session_token = login_command(args.strip())
+            if not session_token:
+                logger.error("Login failed.")
+                return
+            set_state('session_token', session_token)
         case "register":
-            register_command(args.strip())
+            session_token = register_command(args.strip())
+            if not session_token:
+                logger.error("Registration failed.")
+                return
+            set_state('session_token', session_token)   
         case _:
-            print(f"Unknown command: {command}")
+            logger.warning(f"Unknown command: {command}")
             help_command()
