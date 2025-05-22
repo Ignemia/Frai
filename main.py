@@ -4,7 +4,7 @@ dotenv.load_dotenv()
 import logging
 import os
 
-from services.database.connection import start_connection_pool, validate_db_config, check_database_table_presence, initiate_tables
+from services.database.connection import start_engine, validate_db_config, check_database_tables_presence, initiate_tables
 from services.cli.navigation import handle_command, is_command, parse_command, process_input, help_command
 from services.state import get_current_app_state
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 WELCOME_MESSAGE = "Hello! I'm your Personal Chatter companion, ready to chat and help. Simply type your message below to get started, or use /help to see available commands."
 
-database_connection_pool = None
+database_engine = None
 
 def request_message(state):
     message = input(f"{state} > ")
@@ -26,7 +26,7 @@ def init_database():
     """Initialize database tables with proper error handling"""
     try:
         logger.info("Checking database tables...")
-        table_check = check_database_table_presence()
+        table_check = check_database_tables_presence()
         
         if not table_check:
             logger.info("Creating necessary database tables...")
@@ -49,12 +49,12 @@ def init_database():
         return False
 
 def main():
-    global database_connection_pool
+    global database_engine
     
     # Initialize database connection
-    database_connection_pool = start_connection_pool()
-    if not database_connection_pool:
-        print("Failed to establish database connection. Please check your configuration.")
+    database_engine = start_engine()
+    if not database_engine:
+        print("Failed to establish database engine. Please check your configuration.")
         return 1
     
     # Initialize database tables

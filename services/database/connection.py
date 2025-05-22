@@ -1,17 +1,20 @@
 import os
 import time
-import psycopg2
+import psycopg2 # Keep for specific psycopg2.Error if needed, though SQLAlchemy has its own
 import logging
-from typing import Optional
-from psycopg2.pool import ThreadedConnectionPool
+from typing import Optional, Iterator
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker, Session as SQLAlchemySession # Alias Session
+from sqlalchemy.pool import QueuePool
+from sqlalchemy.exc import SQLAlchemyError
 from contextlib import contextmanager
 from services.state import get_state, set_state
-from .create_chat_table import initialize_chats_database
-from .create_password_table import initialize_passwords_database
-from .create_user_table import initialize_users_database
-from .create_session_table import initialize_sessions_database
+from .models import Base, User, PasswordEntry, Chat, ChatKey, Session # Import all models and Base
 
 logger = logging.getLogger(__name__)
+
+def get_database_url() -> str:
+    return f"postgresql+psycopg2://{os.environ.get('POSTGRES_USER')}:{os.environ.get('POSTGRES_PASSWORD')}@{os.environ.get('POSTGRES_HOST')}:5432/{os.environ.get('POSTGRES_DATABASE')}"
 
 def validate_db_config() -> bool:
     required_vars = ["POSTGRES_DATABASE", "POSTGRES_HOST", "POSTGRES_USER", "POSTGRES_PASSWORD"]
@@ -27,201 +30,181 @@ def validate_db_config() -> bool:
 
 def select_all_from_table(table_name: str) -> Optional[list]:
     """
-    Select all rows from a given table.
+    Select all rows from a given table using SQLAlchemy.
     Returns a list of rows if successful, None otherwise.
     """
-    with get_db_cursor() as cursor:
+    with get_db_session() as session:
         try:
-            cursor.execute(f"SELECT * FROM {table_name};")
-            rows = cursor.fetchall()
+            # For a generic function, raw SQL is often simplest.
+            # Alternatively, map table_name to Model class if a limited set of tables.
+            result = session.execute(text(f"SELECT * FROM {table_name};"))
+            rows = result.fetchall() # Returns list of Row objects
             logger.info(f"Fetched {len(rows)} rows from {table_name}.")
-            return rows
-        except Exception as e:
+            return [row._asdict() for row in rows] # Convert to list of dicts for easier use
+        except SQLAlchemyError as e:
             logger.error(f"Error selecting from {table_name}: {e}")
             return None
 
-def get_existing_pool() -> Optional[ThreadedConnectionPool]:
-    return get_state('db_connection_pool')
+def get_existing_engine() -> Optional[any]: # sqlalchemy.engine.Engine
+    return get_state('db_engine')
 
-def create_connection_pool() -> Optional[ThreadedConnectionPool]:
+def create_db_engine() -> Optional[any]: # sqlalchemy.engine.Engine
+    if not validate_db_config():
+        logger.error("Database configuration validation failed. Cannot create engine.")
+        return None
     try:
-        pool = ThreadedConnectionPool(
-            minconn=1, 
-            maxconn=20,
-            database=os.environ.get("POSTGRES_DATABASE"),
-            host=os.environ.get("POSTGRES_HOST"),
-            user=os.environ.get("POSTGRES_USER"),
-            password=os.environ.get("POSTGRES_PASSWORD"),
-            port=5432
+        db_url = get_database_url()
+        engine = create_engine(
+            db_url,
+            poolclass=QueuePool,
+            pool_size=5,        # Default for QueuePool
+            max_overflow=10,    # Default for QueuePool
+            pool_timeout=30,    # Default for QueuePool
+            echo=os.environ.get("SQLALCHEMY_ECHO", "False").lower() == "true" # Optional: echo SQL
         )
-        logger.info("Database connection pool created successfully.")
-        # Save to global state
-        set_state('db_connection_pool', pool)
-        return pool
-    except psycopg2.Error as e:
-        logger.error(f"Failed to create connection pool: {e}")
+        logger.info("Database engine created successfully.")
+        set_state('db_engine', engine)
+        return engine
+    except Exception as e: # Catch broader exceptions during create_engine
+        logger.error(f"Failed to create database engine: {e}")
         return None
 
-def retry_connection_creation(max_retries: int, retry_delay: int) -> Optional[ThreadedConnectionPool]:
+def retry_engine_creation(max_retries: int, retry_delay: int) -> Optional[any]: # sqlalchemy.engine.Engine
     for attempt in range(1, max_retries + 1):
-        logger.info(f"Attempting to create connection pool (attempt {attempt}/{max_retries})...")
+        logger.info(f"Attempting to create database engine (attempt {attempt}/{max_retries})...")
         
-        pool = create_connection_pool()
-        if pool:
-            return pool
-        
-        # Exit early on last attempt
+        engine = create_db_engine()
+        if engine:
+            try:
+                # Test the connection
+                with engine.connect() as connection:
+                    logger.info("Database engine connection test successful.")
+                return engine
+            except SQLAlchemyError as e: # Catch SQLAlchemy specific connection errors
+                logger.warning(f"Engine created, but connection test failed: {e}")
+                set_state('db_engine', None) # Clear potentially bad engine
+
         if attempt >= max_retries:
             break
             
-        logger.warning(f"Connection attempt failed. Retrying in {retry_delay} seconds...")
+        logger.warning(f"Engine creation attempt failed. Retrying in {retry_delay} seconds...")
         time.sleep(retry_delay)
         
-    logger.error(f"Database connection pool creation failed after {max_retries} attempts")
+    logger.error(f"Database engine creation failed after {max_retries} attempts")
     return None
 
-def start_connection_pool(max_retries: int = 3, retry_delay: int = 5) -> Optional[ThreadedConnectionPool]:
-    existing_pool = get_existing_pool()
-    if existing_pool is not None:
-        logger.info("Using existing database connection pool.")
-        return existing_pool
-        
-    if not validate_db_config():
-        logger.error("Database configuration validation failed. Cannot start connection pool.")
-        return None
+def start_engine(max_retries: int = 3, retry_delay: int = 5) -> Optional[any]: # sqlalchemy.engine.Engine
+    existing_engine = get_existing_engine()
+    if existing_engine is not None:
+        logger.info("Using existing database engine.")
+        return existing_engine
     
-    return retry_connection_creation(max_retries, retry_delay)
+    return retry_engine_creation(max_retries, retry_delay)
 
 @contextmanager
-def get_db_connection():
-    _pool = get_existing_pool()
-    
-    if _pool is None:
-        logger.info("No existing connection pool found. Starting a new one...")
-        _pool = create_connection_pool()
+def get_db_session() -> Iterator[SQLAlchemySession]: # Correct type hint for generator
+    engine = get_existing_engine()
+    if engine is None:
+        logger.info("No existing engine found. Attempting to start a new one...")
+        engine = start_engine()
+        if engine is None:
+            # Log and raise a more specific error if engine cannot be started
+            err_msg = "Failed to start database engine for session."
+            logger.critical(err_msg)
+            raise RuntimeError(err_msg)
+
+    # Create a SessionLocal class if it doesn't exist or engine changed.
+    # This is typically done once.
+    SessionLocal = get_state('db_session_local')
+    if SessionLocal is None or SessionLocal.kw['bind'] != engine:
+        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        set_state('db_session_local', SessionLocal)
         
-        
-    conn = None
+    session = SessionLocal()
     try:
-        conn = _pool.getconn()
-        if conn is None:
-            raise psycopg2.Error("Failed to get a connection from the pool")
-        yield conn
+        yield session
+        session.commit()
+    except SQLAlchemyError: # Catch SQLAlchemy specific errors
+        session.rollback()
+        logger.error("SQLAlchemy error occurred, transaction rolled back.", exc_info=True)
+        raise
+    except Exception: # Catch other exceptions
+        session.rollback()
+        logger.error("Generic error occurred, transaction rolled back.", exc_info=True)
+        raise
     finally:
-        if conn and _pool:
-            logger.info("Returning connection to the pool")
-            _pool.putconn(conn)
-
-@contextmanager
-def get_db_cursor(commit=False):
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        try:
-            yield cursor
-            if commit:
-                conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            cursor.close()
+        session.close()
             
-def check_database_table_presence() -> bool:
-    with get_db_cursor() as cursor:
-        cursor.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users');")
-        users_table_exists = cursor.fetchone()[0]
+def check_database_tables_presence() -> bool: # Renamed for clarity
+    engine = get_existing_engine()
+    if not engine:
+        logger.error("Database engine not available for table check.")
+        # Attempt to start engine if not available
+        engine = start_engine()
+        if not engine:
+            logger.error("Failed to start database engine for table check.")
+            return False
+    
+    from sqlalchemy import inspect # Local import
+    inspector = inspect(engine)
+    
+    # All tables defined in models.py Base
+    required_tables = [table.name for table in Base.metadata.tables.values()]
+    
+    try:
+        existing_tables = inspector.get_table_names()
+        all_present = True
+        for table_name in required_tables:
+            if table_name not in existing_tables:
+                logger.warning(f"Table '{table_name}' not found in the database.")
+                all_present = False
         
-        cursor.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'passwords');")
-        passwords_table_exists = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'chats');")
-        chats_table_exists = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'sessions');")
-        sessions_table_exists = cursor.fetchone()[0]
-
-        return users_table_exists and passwords_table_exists and chats_table_exists and sessions_table_exists
+        if all_present:
+            logger.info("All required tables are present.")
+        return all_present
+    except SQLAlchemyError as e: # Catch SQLAlchemy specific errors
+        logger.error(f"Error checking table presence: {e}")
+        return False
     
 def initiate_tables():
+    engine = get_existing_engine()
+    if not engine:
+        logger.error("Database engine not available for table initialization.")
+        engine = start_engine()
+        if not engine:
+            logger.error("Failed to start database engine for table initialization.")
+            return False
     try:
-        with get_db_cursor(commit=True) as cursor:
-            if not initialize_users_database(cursor):
-                logger.error("Failed to create users table.")
-                return False
-            if not initialize_passwords_database(cursor):
-                logger.error("Failed to create passwords table.")
-                return False
-            if not initialize_chats_database(cursor):
-                logger.error("Failed to create chats table.")
-                return False
-            if not initialize_sessions_database(cursor):
-                logger.error("Failed to create sessions table.")
-                return False
-            logger.info("All tables created successfully.")
-    except Exception as e:
+        logger.info("Initializing database tables (creating if they don't exist)...")
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables initialized successfully.")
+        return True
+    except SQLAlchemyError as e: # Catch SQLAlchemy specific errors
         logger.error(f"Error creating tables: {e}")
         return False
-    return True
-
-def fix_chats_table_schema(cursor):
-    """
-    Fix the chats table schema to make sure it has consistent columns.
-    """
-    logger.info("Checking chats table schema...")
-    try:
-        # Check which columns exist
-        cursor.execute("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'chats';
-        """)
-        
-        columns = [row[0] for row in cursor.fetchall()]
-        logger.debug(f"Current columns in chats table: {columns}")
-        
-        # Check if we have a contents column
-        if 'contents' not in columns and 'encrypted_contents' not in columns:
-            logger.info("Adding contents column to chats table")
-            cursor.execute("ALTER TABLE chats ADD COLUMN contents TEXT NOT NULL DEFAULT '';")
-        
-        # Check if we have a chat_name column
-        if 'chat_name' not in columns:
-            logger.info("Adding chat_name column to chats table")
-            cursor.execute("ALTER TABLE chats ADD COLUMN chat_name TEXT NOT NULL DEFAULT 'Untitled Chat';")
-        
-        # Check if we have a last_modified column
-        if 'last_modified' not in columns:
-            logger.info("Adding last_modified column to chats table")
-            cursor.execute("ALTER TABLE chats ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;")
-        
-        cursor.connection.commit()
-        logger.info("Chats table schema check complete")
-        return True
-    except Exception as e:
-        logger.error(f"Error fixing chats table schema: {e}")
+    except Exception as e: # Catch other potential errors
+        logger.error(f"Unexpected error creating tables: {e}")
         return False
+
+# The fix_chats_table_schema is complex with ORM. Schema migrations (e.g. Alembic)
+# are preferred for altering existing tables. Base.metadata.create_all only creates.
+# For simplicity, this function is removed. `upgrade_database_schema` will just ensure creation.
 
 def upgrade_database_schema():
     """
-    Perform a check and upgrade of all database tables schema.
-    This ensures all columns are present as expected.
+    Ensures all tables defined in models are created in the database.
+    This does not handle complex migrations (e.g., altering columns on existing tables).
+    For schema changes, a migration tool like Alembic is recommended.
     """
-    logger.info("Checking and upgrading database schema if needed...")
-    try:
-        with get_db_cursor() as cursor:
-            # Fix the chats table schema first
-            if not fix_chats_table_schema(cursor):
-                return False
-            
-            # Then run the usual table initializations
-            from services.database.create_chat_table import initialize_chats_database
-            initialize_chats_database(cursor)
-            
-            # Add other table initializations here as needed
-            
-            cursor.connection.commit()
-            logger.info("Database schema check and upgrade completed")
-            return True
-    except Exception as e:
-        logger.error(f"Failed to upgrade database schema: {e}")
+    logger.info("Checking and creating database tables if needed (does not alter existing tables)...")
+    if not initiate_tables():
+        logger.error("Failed to ensure database tables are created.")
         return False
+    
+    # Optionally, verify presence again, though initiate_tables should suffice
+    if not check_database_tables_presence():
+        logger.warning("Some tables might still be missing after initialization attempt.")
+        return False
+        
+    logger.info("Database schema check/creation completed.")
+    return True

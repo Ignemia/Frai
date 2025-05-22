@@ -42,17 +42,25 @@ def serialize_key_pair(key_pair):
     }
 
 def deserialize_key_pair(serialized_keys):
-    """Deserialize RSA key pair from storage"""
+    """
+    Deserialize RSA key pair from storage.
+    Can deserialize from just private key PEM if public is not provided.
+    """
     private_key = serialization.load_pem_private_key(
         serialized_keys['private'].encode('utf-8'),
         password=None,
         backend=default_backend()
     )
     
-    public_key = serialization.load_pem_public_key(
-        serialized_keys['public'].encode('utf-8'),
-        backend=default_backend()
-    )
+    public_key_pem = serialized_keys.get('public')
+    if public_key_pem:
+        public_key = serialization.load_pem_public_key(
+            public_key_pem.encode('utf-8'),
+            backend=default_backend()
+        )
+    else:
+        # Derive public key from private key if not provided
+        public_key = private_key.public_key()
     
     return {
         'private': private_key,
@@ -93,7 +101,13 @@ def encrypt_chat_content(content, public_key):
     }
 
 def decrypt_chat_content(encrypted_data, private_key):
-    """Decrypt chat content with RSA private key"""
+    """
+    Decrypt chat content with RSA private key.
+    encrypted_data is a dict: {'content': b64_aes_encrypted_xml, 
+                               'encrypted_key': b64_rsa_encrypted_aes_key, 
+                               'iv': b64_aes_iv}
+    private_key is an RSA private key object.
+    """
     # Decode base64 values
     encrypted_content = base64.b64decode(encrypted_data['content'])
     encrypted_key = base64.b64decode(encrypted_data['encrypted_key'])
@@ -122,21 +136,24 @@ def decrypt_chat_content(encrypted_data, private_key):
     return content.decode('utf-8')
 
 def encrypt_rsa_keys_with_credentials(serialized_keys, username, password_hash):
-    """Encrypt RSA keys using a derived key from username and password hash"""
+    """
+    Encrypt RSA private key PEM string using a derived key from username and password hash.
+    'serialized_keys' dict is expected to have 'private' key with PEM string.
+    """
     # Create a key from the username and password hash
     key_material = f"{username}:{password_hash}".encode('utf-8')
     derived_key = hashlib.sha256(key_material).digest()
     iv = os.urandom(16)
     
-    # Serialize and encrypt the RSA keys
-    keys_str = base64.b64encode(serialized_keys['private'].encode('utf-8')).decode('utf-8')
+    # Serialize and encrypt the RSA private key string
+    private_key_pem_str = serialized_keys['private'] # Expecting 'private' to be the PEM string
     
     # Encrypt with AES
     cipher = Cipher(algorithms.AES(derived_key), modes.CBC(iv), backend=default_backend())
     encryptor = cipher.encryptor()
     
     # Pad content
-    padded_content = keys_str.encode('utf-8')
+    padded_content = private_key_pem_str.encode('utf-8') # Changed keys_str to private_key_pem_str
     padding_length = 16 - (len(padded_content) % 16)
     padded_content += bytes([padding_length]) * padding_length
     
@@ -148,7 +165,11 @@ def encrypt_rsa_keys_with_credentials(serialized_keys, username, password_hash):
     }
 
 def decrypt_rsa_keys_with_credentials(encrypted_data, username, password_hash):
-    """Decrypt RSA keys using credentials"""
+    """
+    Decrypt RSA private key PEM string using credentials.
+    'encrypted_data' is a dict: {'encrypted_key': b64_encrypted_private_key_pem, 'iv': b64_iv}
+    Returns a dict: {'private': private_key_pem_string}
+    """
     # Recreate the derived key
     key_material = f"{username}:{password_hash}".encode('utf-8')
     derived_key = hashlib.sha256(key_material).digest()
@@ -167,10 +188,10 @@ def decrypt_rsa_keys_with_credentials(encrypted_data, username, password_hash):
     padding_length = padded_content[-1]
     content = padded_content[:-padding_length]
     
-    # Deserialize the RSA private key
+    # Deserialize the RSA private key string
     private_key_str = base64.b64decode(content).decode('utf-8')
     
     return {
         'private': private_key_str,
-        'public': None  # Public key can be derived from private key if needed
+        # Public key is not decrypted here, it can be derived from the private key object later
     }

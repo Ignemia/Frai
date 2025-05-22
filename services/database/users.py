@@ -1,4 +1,5 @@
-from services.database.connection import get_db_cursor, select_all_from_table
+from services.database.connection import get_db_session, select_all_from_table # select_all_from_table might be used for debugging
+from .models import User, PasswordEntry
 import datetime
 import logging
 
@@ -7,72 +8,92 @@ logger = logging.getLogger(__name__)
 
 def user_exists(username):
     logger.info(f"Checking if user {username} exists.")
-    logger.debug(f"Attempting to get a database cursor.")
-    with get_db_cursor() as cursor:
-        logger.debug(f"Got a database cursor. Executing query to check user existence.")
-        cursor.execute(
-            "SELECT EXISTS(SELECT 1 FROM users WHERE name = %s);", (username,)
-        )
+    logger.debug(f"Attempting to get a database session.")
+    with get_db_session() as session:
+        logger.debug(f"Got a database session. Executing query to check user existence.")
+        user = session.query(User).filter(User.name == username).first()
         
-        logger.debug(f"Executed query to check user existence. Fetching result.")
-        return cursor.fetchone()[0]
+        logger.debug(f"Executed query to check user existence. User found: {user is not None}.")
+        return user is not None
 
 
 def get_user_id(username):
     logger.info(f"Fetching user ID for username: {username}")
-    if not user_exists(username):
-        logger.error(f"User {username} does not exist.")
-        return None
-    logger.debug(f"User {username} exists. Proceeding to fetch user ID.")
-    logger.debug(f"Attempting to get a database cursor.")
-    with get_db_cursor() as cursor:
-        logger.debug(f"Got a database cursor. Executing query to fetch user ID.")
-        cursor.execute("SELECT user_id FROM users WHERE name = %s;", (username,))
+    # No need to call user_exists separately, query directly
+    logger.debug(f"Attempting to get a database session.")
+    with get_db_session() as session:
+        logger.debug(f"Got a database session. Executing query to fetch user.")
+        user = session.query(User).filter(User.name == username).first()
         
-        logger.debug(f"Executed query to fetch user ID. Fetching result.")
-        result = cursor.fetchone()
-        
-        logger.debug(f"Fetched result: {result}.")
-        return result[0] if result else None
+        if user:
+            logger.debug(f"User {username} exists with ID {user.user_id}.")
+            return user.user_id
+        else:
+            logger.error(f"User {username} does not exist.")
+            return None
 
 
-def register_user(username, password, expire_days=90):
+def register_user(username, password, expire_days=90): # 'password' is assumed to be pre-hashed
     logger.info(f"Registering user: {username}")
-    if user_exists(username):
-        logger.error(f"User {username} already exists.")
-        return None
+    
+    with get_db_session() as session:
+        logger.debug(f"Got a database session. Checking if user {username} already exists.")
+        existing_user = session.query(User).filter(User.name == username).first()
+        if existing_user:
+            logger.error(f"User {username} already exists.")
+            return None
 
-    logger.info(f"User {username} does not exist. Proceeding with registration.")
+        logger.info(f"User {username} does not exist. Proceeding with registration.")
 
-    logger.debug(f"Attempting to get a database cursor.")
-    with get_db_cursor() as cursor:
-        logger.debug(
-            f"Got a database cursor. Inserting user {username} into the database."
-        )
-        cursor.execute(
-            "INSERT INTO users (name) VALUES (%s) RETURNING user_id;", (username,)
-        )
+        new_user = User(name=username)
+        session.add(new_user)
         
-        logger.debug(f"Inserted user {username} into the database. Fetching user ID.")
-        user_id = cursor.fetchone()[0]
+        # Flush to get the auto-generated user_id before creating PasswordEntry
+        # This is necessary because PasswordEntry needs user_id
+        try:
+            session.flush() 
+        except Exception as e:
+            logger.error(f"Error flushing session to get user_id for {username}: {e}")
+            session.rollback() # Rollback on flush error
+            return None
+
         logger.debug(
-            f"User ID for {username} is {user_id}. Proceeding to insert password."
+            f"User {username} added to session, user_id is {new_user.user_id}. Proceeding to insert password."
         )
         expire_date = datetime.datetime.now() + datetime.timedelta(days=expire_days)
         
         logger.debug(f"Setting password expiration date to {expire_date}.")
-        logger.debug(f"Inserting password for user {username} into the database.")
-        cursor.execute(
-            "INSERT INTO passwords (user_id, hashed_password, expire_date) VALUES (%s, %s, %s);",
-            (user_id, password, expire_date),
+        new_password_entry = PasswordEntry(
+            user_id=new_user.user_id, 
+            hashed_password=password, # 'password' is the hashed password
+            expire_date=expire_date
         )
-        logger.debug(f"Inserted password for user {username} into the database.")
+        session.add(new_password_entry)
         
-        # Commit the transaction to ensure the data is persisted
-        cursor.connection.commit()
-        logger.debug(f"Committed transaction to the database.")
+        # Commit is handled by the get_db_session context manager
         
-        logger.info(f"User {username} registered successfully with ID {user_id}.")
-        select_all_from_table("users")
-        select_all_from_table("passwords")
-        return user_id
+        logger.info(f"User {username} registered successfully with ID {new_user.user_id}.")
+        # Debugging calls, ensure select_all_from_table is SQLAlchemy compatible if used
+        # select_all_from_table("users")
+        # select_all_from_table("passwords")
+        return new_user.user_id
+
+
+def get_user_credentials_for_key_derivation(user_id: int, session: 'SQLAlchemySession') -> Optional[tuple[str, str]]:
+    """
+    Fetches the username and hashed password for a given user_id.
+    Used for deriving encryption keys based on user credentials.
+    """
+    logger.debug(f"Fetching credentials for key derivation for user_id: {user_id}")
+    user = session.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        logger.error(f"User not found for user_id: {user_id}")
+        return None
+
+    password_entry = session.query(PasswordEntry).filter(PasswordEntry.user_id == user_id).first()
+    if not password_entry:
+        logger.error(f"Password entry not found for user_id: {user_id}")
+        return None
+    
+    logger.debug(f"Successfully fetched username and password hash for user_id: {user_id}")
+    return user.name, password_entry.hashed_password

@@ -1,15 +1,19 @@
 import logging
 import datetime
-from services.database.connection import get_db_cursor
+from services.database.connection import get_db_session
 from services.database.sessions import verify_session_token
+from .models import Chat, ChatKey, User, PasswordEntry # Import SQLAlchemy models
+from services.database.users import get_user_credentials_for_key_derivation # Helper function
 from services.encryption.chat_crypto import (
     generate_rsa_key_pair, 
     serialize_key_pair,
+    deserialize_key_pair, # Added deserialize
     encrypt_chat_content, 
     decrypt_chat_content,
     encrypt_rsa_keys_with_credentials,
     decrypt_rsa_keys_with_credentials
 )
+import xml.etree.ElementTree as ET # For add_message_to_chat
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +42,7 @@ def create_empty_chat_xml():
 
 def create_chat(chat_name, session_token):
     """
-    Create a new chat for the user with initial encryption.
+    Create a new chat for the user with the new encryption flow.
     Returns the chat_id if successful, None otherwise.
     """
     user_id = verify_session_token(session_token)
@@ -47,91 +51,85 @@ def create_chat(chat_name, session_token):
         return None
     
     try:
-        # Create empty XML chat content with system prompt
-        chat_xml = create_empty_chat_xml()
-        
-        # Generate RSA keys for the chat
-        key_pair = generate_rsa_key_pair()
-        serialized_keys = serialize_key_pair(key_pair)
-        
-        # Encrypt the chat content
-        encrypted_data = encrypt_chat_content(chat_xml, key_pair['public'])
-        
-        with get_db_cursor() as cursor:
-            # Check which columns exist in the chats table
-            cursor.execute("""
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name = 'chats';
-            """)
-            
-            columns = [row[0] for row in cursor.fetchall()]
-            logger.debug(f"Available columns in chats table: {columns}")
-            
-            # Build SQL query based on available columns
-            query_parts = []
-            params = []
-            
-            # Always include user_id
-            query_parts.append("user_id = %s")
-            params.append(user_id)
-            
-            # Add chat_name if column exists
-            if 'chat_name' in columns:
-                query_parts.append("chat_name = %s")
-                params.append(chat_name)
-            
-            # Handle content (could be either 'contents' or 'encrypted_contents')
-            content_added = False
-            if 'contents' in columns:
-                query_parts.append("contents = %s")
-                params.append(encrypted_data['content'])
-                content_added = True
-            
-            if 'encrypted_contents' in columns and not content_added:
-                query_parts.append("encrypted_contents = %s")
-                params.append(encrypted_data['content'])
-                content_added = True
-            
-            # Ensure at least one content column is updated
-            if not content_added:
-                logger.error("Neither 'contents' nor 'encrypted_contents' column found in chats table")
+        with get_db_session() as session:
+            user_creds = get_user_credentials_for_key_derivation(user_id, session)
+            if not user_creds:
+                logger.error(f"Could not retrieve credentials for user {user_id} to create chat.")
                 return None
+            username, password_hash = user_creds
+
+            chat_xml = create_empty_chat_xml()
             
-            # Build the INSERT query using column specification
-            column_names = [part.split(" = ")[0] for part in query_parts]
-            value_placeholders = ["%s" for _ in column_names]
-            
-            query = f"""
-                INSERT INTO chats ({', '.join(column_names)})
-                VALUES ({', '.join(value_placeholders)})
-                RETURNING chat_id;
-            """
-            
-            # Execute the query
-            cursor.execute(query, params)
-            chat_id = cursor.fetchone()[0]
-            
-            # Insert the encrypted key
-            cursor.execute(
-                """
-                INSERT INTO chat_keys (chat_id, encrypted_key, iv)
-                VALUES (%s, %s, %s);
-                """,
-                (chat_id, encrypted_data['encrypted_key'], encrypted_data['iv'])
+            # 1. Generate chat-specific RSA key pair
+            chat_rsa_key_pair_obj = generate_rsa_key_pair() # Returns objects
+
+            # 2. Encrypt chat content (generates AES key, encrypts it with chat's RSA public key)
+            encrypted_chat_data = encrypt_chat_content(chat_xml, chat_rsa_key_pair_obj['public'])
+            # encrypted_chat_data = {'content', 'encrypted_key', 'iv'}
+
+            # 3. Serialize the chat's RSA private key to PEM string
+            serialized_chat_rsa_private_pem = serialize_key_pair(chat_rsa_key_pair_obj)['private']
+
+            # 4. Encrypt the serialized chat RSA private key PEM using UserDerivedKey
+            encrypted_rsa_private_key_package = encrypt_rsa_keys_with_credentials(
+                {'private': serialized_chat_rsa_private_pem}, # Pass as dict
+                username, 
+                password_hash
             )
+            # encrypted_rsa_private_key_package = {'encrypted_key', 'iv'}
+
+            # 5. Store everything
+            new_chat = Chat(
+                user_id=user_id,
+                chat_name=chat_name,
+                contents=encrypted_chat_data['content'] # AES-encrypted XML (base64)
+            )
+            session.add(new_chat)
+            session.flush() # To get new_chat.chat_id
+
+            new_chat_key_entry = ChatKey(
+                chat_id=new_chat.chat_id,
+                encrypted_key=encrypted_chat_data['encrypted_key'], # ChatAESKey, RSA-encrypted (base64)
+                iv=encrypted_chat_data['iv'], # IV for content AES (base64)
+                encrypted_rsa_private_key=encrypted_rsa_private_key_package['encrypted_key'], # Chat RSA private key, AES-encrypted (base64)
+                user_derived_key_iv=encrypted_rsa_private_key_package['iv'] # IV for UserDerivedKey AES (base64)
+            )
+            session.add(new_chat_key_entry)
             
-            cursor.connection.commit()
-            logger.info(f"Created new chat '{chat_name}' (ID: {chat_id}) for user {user_id}")
+            logger.info(f"Created new chat '{chat_name}' (ID: {new_chat.chat_id}) for user {user_id}")
+            return new_chat.chat_id
             
-            return chat_id
     except Exception as e:
-        logger.error(f"Error creating chat: {e}")
+        logger.error(f"Error creating chat: {e}", exc_info=True)
         return None
+
+def _get_decrypted_chat_rsa_private_key(chat_key_entry: ChatKey, user_id: int, session: 'SQLAlchemySession') -> Optional[object]:
+    """Helper to decrypt and return the chat's RSA private key object."""
+    user_creds = get_user_credentials_for_key_derivation(user_id, session)
+    if not user_creds:
+        logger.error(f"Could not retrieve credentials for user {user_id} to decrypt chat RSA key.")
+        return None
+    username, password_hash = user_creds
+
+    encrypted_rsa_package = {
+        'encrypted_key': chat_key_entry.encrypted_rsa_private_key,
+        'iv': chat_key_entry.user_derived_key_iv
+    }
+    
+    decrypted_serialized_private_pem_dict = decrypt_rsa_keys_with_credentials(
+        encrypted_rsa_package, username, password_hash
+    ) # Returns {'private': pem_string}
+    
+    # Deserialize PEM string to RSA private key object
+    # deserialize_key_pair expects {'private': pem, 'public': pem_or_none}
+    # but can derive public from private if 'public' is missing.
+    chat_rsa_key_pair_obj = deserialize_key_pair({'private': decrypted_serialized_private_pem_dict['private']})
+    return chat_rsa_key_pair_obj['private']
+
 
 def open_chat(chat_id, session_token):
     """
-    Open and decrypt a chat.
+    Open and decrypt a chat using the new encryption flow.
     Returns the decrypted chat content if successful, None otherwise.
     """
     user_id = verify_session_token(session_token)
@@ -140,54 +138,37 @@ def open_chat(chat_id, session_token):
         return None
     
     try:
-        with get_db_cursor() as cursor:
-            # Check which columns exist in the chats table
-            cursor.execute("""
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name = 'chats';
-            """)
-            
-            columns = [row[0] for row in cursor.fetchall()]
-            
-            # Determine which column to use for content
-            content_column = "encrypted_contents" if "encrypted_contents" in columns else "contents"
-            
-            # Verify the chat belongs to the user
-            cursor.execute(
-                f"""
-                SELECT {content_column} FROM chats 
-                WHERE chat_id = %s AND user_id = %s;
-                """,
-                (chat_id, user_id)
-            )
-            result = cursor.fetchone()
-            if not result:
+        with get_db_session() as session:
+            chat = session.query(Chat).filter(Chat.chat_id == chat_id, Chat.user_id == user_id).first()
+            if not chat:
                 logger.warning(f"Chat {chat_id} not found or doesn't belong to user {user_id}")
                 return None
             
-            encrypted_content = result[0]
-            
-            # Get the encryption key
-            cursor.execute(
-                """
-                SELECT encrypted_key, iv FROM chat_keys
-                WHERE chat_id = %s;
-                """,
-                (chat_id,)
-            )
-            key_data = cursor.fetchone()
-            if not key_data:
-                logger.error(f"Encryption key not found for chat {chat_id}")
+            chat_key_entry = session.query(ChatKey).filter(ChatKey.chat_id == chat_id).first()
+            if not chat_key_entry:
+                logger.error(f"Encryption key data not found for chat {chat_id}")
                 return None
+
+            # 1. Decrypt the chat's RSA private key
+            chat_rsa_private_key_obj = _get_decrypted_chat_rsa_private_key(chat_key_entry, user_id, session)
+            if not chat_rsa_private_key_obj:
+                logger.error(f"Failed to decrypt chat RSA private key for chat {chat_id}.")
+                return None # Or raise an error indicating decryption failure
+
+            # 2. Prepare data for decrypt_chat_content
+            encrypted_content_package = {
+                'content': chat.contents, # AES-encrypted XML (base64)
+                'encrypted_key': chat_key_entry.encrypted_key, # ChatAESKey, RSA-encrypted (base64)
+                'iv': chat_key_entry.iv # IV for content AES (base64)
+            }
+
+            # 3. Decrypt chat content using the chat's RSA private key (which decrypts ChatAESKey)
+            decrypted_xml = decrypt_chat_content(encrypted_content_package, chat_rsa_private_key_obj)
             
-            encrypted_key, iv = key_data
-            
-            # TODO: Implement fetching the user's password hash to decrypt the key
-            # For now, we'll return a placeholder empty chat XML
-            return create_empty_chat_xml()
+            logger.info(f"Successfully opened and decrypted chat {chat_id} for user {user_id}")
+            return decrypted_xml
     except Exception as e:
-        logger.error(f"Error opening chat: {e}")
+        logger.error(f"Error opening chat {chat_id}: {e}", exc_info=True)
         return None
 
 def count_user_messages_in_chat(chat_xml):
@@ -205,7 +186,7 @@ def count_user_messages_in_chat(chat_xml):
 
 def add_message_to_chat(chat_id, session_token, role, message, thoughts=None, sources=None):
     """
-    Add a message to the chat.
+    Add a message to the chat, involving decryption and re-encryption.
     Returns True if successful, False otherwise.
     """
     user_id = verify_session_token(session_token)
@@ -214,48 +195,75 @@ def add_message_to_chat(chat_id, session_token, role, message, thoughts=None, so
         return False
     
     try:
-        with get_db_cursor() as cursor:
-            # Get current chat content and encryption data
-            cursor.execute(
-                """
-                SELECT c.encrypted_contents, k.encrypted_key, k.iv
-                FROM chats c
-                JOIN chat_keys k ON c.chat_id = k.chat_id
-                WHERE c.chat_id = %s AND c.user_id = %s;
-                """,
-                (chat_id, user_id)
-            )
-            
-            result = cursor.fetchone()
-            if not result:
+        with get_db_session() as session:
+            chat = session.query(Chat).filter(Chat.chat_id == chat_id, Chat.user_id == user_id).first()
+            if not chat:
                 logger.error(f"Chat {chat_id} not found or doesn't belong to user {user_id}")
                 return False
             
-            encrypted_content, encrypted_key, iv = result
+            chat_key_entry = session.query(ChatKey).filter(ChatKey.chat_id == chat_id).first()
+            if not chat_key_entry:
+                logger.error(f"Encryption key data not found for chat {chat_id}")
+                return False
+
+            # 1. Decrypt the chat's RSA private key to get its pair (public key needed for re-encryption)
+            chat_rsa_private_key_obj = _get_decrypted_chat_rsa_private_key(chat_key_entry, user_id, session)
+            if not chat_rsa_private_key_obj:
+                logger.error(f"Failed to decrypt chat RSA private key for chat {chat_id} to add message.")
+                return False
+            chat_rsa_public_key_obj = chat_rsa_private_key_obj.public_key()
+
+            # 2. Decrypt current chat content
+            encrypted_content_package = {
+                'content': chat.contents,
+                'encrypted_key': chat_key_entry.encrypted_key,
+                'iv': chat_key_entry.iv
+            }
+            decrypted_xml_str = decrypt_chat_content(encrypted_content_package, chat_rsa_private_key_obj)
+
+            # 3. Add new message to XML
+            # Ensure decrypted_xml_str is not None or empty before parsing
+            if not decrypted_xml_str:
+                logger.error(f"Decrypted chat content is empty for chat {chat_id}. Cannot add message.")
+                # Potentially initialize with empty chat structure if this happens
+                decrypted_xml_str = create_empty_chat_xml()
+
+
+            try:
+                root = ET.fromstring(decrypted_xml_str)
+                new_message_element_str = format_chat_message(role, message, thoughts=thoughts, sources=sources)
+                new_message_element = ET.fromstring(new_message_element_str)
+                root.append(new_message_element)
+                updated_xml_str = ET.tostring(root, encoding='unicode')
+            except ET.ParseError as e:
+                logger.error(f"Error parsing chat XML for chat {chat_id}: {e}. Content: '{decrypted_xml_str[:100]}...'")
+                # If XML is corrupted, might need a recovery strategy or error out
+                # For now, let's try to re-initialize if parsing fails badly.
+                logger.warning(f"Re-initializing chat content for chat {chat_id} due to parse error.")
+                current_chat_xml_str = create_empty_chat_xml()
+                root = ET.fromstring(current_chat_xml_str)
+                new_message_element_str = format_chat_message(role, message, thoughts=thoughts, sources=sources)
+                new_message_element = ET.fromstring(new_message_element_str)
+                root.append(new_message_element)
+                updated_xml_str = ET.tostring(root, encoding='unicode')
+
+
+            # 4. Re-encrypt the updated XML content
+            # encrypt_chat_content will generate a new AES key and IV for the content
+            new_encrypted_chat_data = encrypt_chat_content(updated_xml_str, chat_rsa_public_key_obj)
+
+            # 5. Update database
+            chat.contents = new_encrypted_chat_data['content']
+            chat.last_modified = datetime.datetime.now() # Or rely on model's onupdate
+
+            chat_key_entry.encrypted_key = new_encrypted_chat_data['encrypted_key'] # New ChatAESKey, RSA-encrypted
+            chat_key_entry.iv = new_encrypted_chat_data['iv'] # New IV for content AES
+            # The chat_rsa_private_key and its encryption (user_derived_key_iv) do not change here.
             
-            # For now, we'll use a placeholder for the decrypted content
-            # In a real implementation, you would:
-            # 1. Decrypt the content
-            # 2. Add the new message
-            # 3. Re-encrypt the content
-            # 4. Update the database
-            
-            # Placeholder implementation - just update timestamp
-            cursor.execute(
-                """
-                UPDATE chats
-                SET last_modified = CURRENT_TIMESTAMP
-                WHERE chat_id = %s;
-                """,
-                (chat_id,)
-            )
-            
-            cursor.connection.commit()
             logger.info(f"Added {role} message to chat {chat_id}")
-            
             return True
     except Exception as e:
-        logger.error(f"Error adding message to chat: {e}")
+        logger.error(f"Error adding message to chat {chat_id}: {e}", exc_info=True)
         return False
 
 def list_user_chats(session_token):
@@ -269,22 +277,18 @@ def list_user_chats(session_token):
         return None
     
     try:
-        with get_db_cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT chat_id, chat_name, last_modified 
-                FROM chats 
-                WHERE user_id = %s
-                ORDER BY last_modified DESC;
-                """,
-                (user_id,)
-            )
-            chats = cursor.fetchall()
+        with get_db_session() as session:
+            # Query specific columns and order
+            chats_data = session.query(Chat.chat_id, Chat.chat_name, Chat.last_modified)\
+                                .filter(Chat.user_id == user_id)\
+                                .order_by(Chat.last_modified.desc())\
+                                .all()
             
-            logger.info(f"Retrieved {len(chats)} chats for user ID: {user_id}")
-            return chats
+            # chats_data will be a list of Row objects (like named tuples)
+            logger.info(f"Retrieved {len(chats_data)} chats for user ID: {user_id}")
+            return chats_data # Returns list of (chat_id, chat_name, last_modified) tuples
     except Exception as e:
-        logger.error(f"Error listing user chats: {e}")
+        logger.error(f"Error listing user chats: {e}", exc_info=True)
         return None
 
 def update_chat_title(chat_id, new_title, session_token):
@@ -298,33 +302,27 @@ def update_chat_title(chat_id, new_title, session_token):
         return False
     
     try:
-        with get_db_cursor() as cursor:
-            cursor.execute(
-                """
-                UPDATE chats 
-                SET chat_name = %s, last_modified = CURRENT_TIMESTAMP 
-                WHERE chat_id = %s AND user_id = %s
-                RETURNING chat_id;
-                """,
-                (new_title, chat_id, user_id)
-            )
-            result = cursor.fetchone()
+        with get_db_session() as session:
+            chat = session.query(Chat)\
+                          .filter(Chat.chat_id == chat_id, Chat.user_id == user_id)\
+                          .first()
             
-            if not result:
-                logger.warning(f"Chat {chat_id} not found or doesn't belong to user {user_id}")
+            if not chat:
+                logger.warning(f"Chat {chat_id} not found or doesn't belong to user {user_id} for title update.")
                 return False
                 
-            cursor.connection.commit()
+            chat.chat_name = new_title
+            chat.last_modified = datetime.datetime.now() # Explicitly update if model doesn't do it via onupdate
+            
             logger.info(f"Updated title for chat {chat_id} to '{new_title}'")
             return True
     except Exception as e:
-        logger.error(f"Error updating chat title: {e}")
+        logger.error(f"Error updating chat title: {e}", exc_info=True)
         return False
 
-def save_chat_content(chat_id, updated_content, session_token):
+def save_chat_content(chat_id, updated_content_xml, session_token):
     """
-    Save updated chat content to the database.
-    Re-encrypts the content with the existing keys.
+    Save updated chat content to the database. Re-encrypts the content.
     Returns True if successful, False otherwise.
     """
     user_id = verify_session_token(session_token)
@@ -333,38 +331,38 @@ def save_chat_content(chat_id, updated_content, session_token):
         return False
     
     try:
-        with get_db_cursor() as cursor:
-            # Get the current encryption key
-            cursor.execute(
-                """
-                SELECT ck.encrypted_key, ck.iv
-                FROM chat_keys ck
-                JOIN chats c ON c.chat_id = ck.chat_id
-                WHERE c.chat_id = %s AND c.user_id = %s;
-                """,
-                (chat_id, user_id)
-            )
-            key_data = cursor.fetchone()
-            
-            if not key_data:
-                logger.error(f"Encryption key not found for chat {chat_id}")
+        with get_db_session() as session:
+            chat = session.query(Chat).filter(Chat.chat_id == chat_id, Chat.user_id == user_id).first()
+            if not chat:
+                logger.error(f"Chat {chat_id} not found for user {user_id} when trying to save content.")
+                return False
+
+            chat_key_entry = session.query(ChatKey).filter(ChatKey.chat_id == chat_id).first()
+            if not chat_key_entry:
+                logger.error(f"Encryption key data not found for chat {chat_id} during save.")
                 return False
             
-            # TODO: Implement the re-encryption of content
-            # For now, this is a placeholder
-            
-            cursor.execute(
-                """
-                UPDATE chats
-                SET encrypted_contents = %s, last_modified = CURRENT_TIMESTAMP
-                WHERE chat_id = %s AND user_id = %s;
-                """,
-                ("placeholder_encrypted_content", chat_id, user_id)
-            )
-            
-            cursor.connection.commit()
-            logger.info(f"Updated content for chat {chat_id}")
+            # 1. Decrypt the chat's RSA private key to get its pair (public key needed for re-encryption)
+            chat_rsa_private_key_obj = _get_decrypted_chat_rsa_private_key(chat_key_entry, user_id, session)
+            if not chat_rsa_private_key_obj:
+                logger.error(f"Failed to decrypt chat RSA private key for chat {chat_id} to save content.")
+                return False
+            chat_rsa_public_key_obj = chat_rsa_private_key_obj.public_key()
+
+            # 2. Re-encrypt the provided updated_content_xml
+            # encrypt_chat_content will generate a new AES key and IV.
+            new_encrypted_chat_data = encrypt_chat_content(updated_content_xml, chat_rsa_public_key_obj)
+
+            # 3. Update database
+            chat.contents = new_encrypted_chat_data['content']
+            chat.last_modified = datetime.datetime.now() # Or rely on model's onupdate
+
+            chat_key_entry.encrypted_key = new_encrypted_chat_data['encrypted_key'] # New ChatAESKey, RSA-encrypted
+            chat_key_entry.iv = new_encrypted_chat_data['iv'] # New IV for content AES
+            # The chat_rsa_private_key and its encryption (user_derived_key_iv) do not change.
+
+            logger.info(f"Updated and saved content for chat {chat_id}")
             return True
     except Exception as e:
-        logger.error(f"Error saving chat content: {e}")
+        logger.error(f"Error saving chat content for chat {chat_id}: {e}", exc_info=True)
         return False

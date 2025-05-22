@@ -1,4 +1,5 @@
-from services.database.connection import get_db_cursor
+from services.database.connection import get_db_session
+from .models import User, PasswordEntry # Import SQLAlchemy models
 import datetime
 import logging
 
@@ -7,17 +8,14 @@ logger = logging.getLogger(__name__)
 
 def get_password_hash(user_id):
     logger.info(f"Fetching password hash for user ID: {user_id}")
-    logger.debug(f"Attempting to get a database cursor.")
-    with get_db_cursor() as cursor:
-        logger.debug(f"Got a database cursor. Executing query to fetch password hash.")
-        cursor.execute("SELECT hashed_password FROM passwords WHERE user_id = %s;", (user_id,))
+    logger.debug(f"Attempting to get a database session.")
+    with get_db_session() as session:
+        logger.debug(f"Got a database session. Executing query to fetch password entry.")
+        password_entry = session.query(PasswordEntry).filter(PasswordEntry.user_id == user_id).first()
         
-        logger.debug(f"Executed query to fetch password hash. Fetching result.")
-        result = cursor.fetchone()
-        
-        if result:
+        if password_entry:
             logger.debug(f"Password hash found for user ID: {user_id}")
-            return result[0]
+            return password_entry.hashed_password
         else:
             logger.warning(f"No password hash found for user ID: {user_id}")
             return None
@@ -28,101 +26,89 @@ def update_password(user_id, new_password_hash, expire_days=90):
     expire_date = datetime.datetime.now() + datetime.timedelta(days=expire_days)
     logger.debug(f"Setting password expiration date to {expire_date}")
     
-    logger.debug(f"Attempting to get a database cursor.")
-    with get_db_cursor() as cursor:
-        logger.debug(f"Got a database cursor. Checking if password already exists for user ID: {user_id}")
-        cursor.execute("SELECT 1 FROM passwords WHERE user_id = %s", (user_id,))
-        exists = cursor.fetchone() is not None
+    logger.debug(f"Attempting to get a database session.")
+    with get_db_session() as session:
+        logger.debug(f"Got a database session. Checking if password entry exists for user ID: {user_id}")
+        password_entry = session.query(PasswordEntry).filter(PasswordEntry.user_id == user_id).first()
         
-        if exists:
-            logger.debug(f"Password exists for user ID: {user_id}. Updating password.")
-            cursor.execute(
-                "UPDATE passwords SET hashed_password = %s, expire_date = %s WHERE user_id = %s;", 
-                (new_password_hash, expire_date, user_id)
-            )
+        if password_entry:
+            logger.debug(f"Password entry exists for user ID: {user_id}. Updating password.")
+            password_entry.hashed_password = new_password_hash
+            password_entry.expire_date = expire_date
             logger.debug(f"Password updated for user ID: {user_id}")
         else:
-            logger.debug(f"No password exists for user ID: {user_id}. Inserting new password.")
-            cursor.execute(
-                "INSERT INTO passwords (user_id, hashed_password, expire_date) VALUES (%s, %s, %s);",
-                (user_id, new_password_hash, expire_date)
+            logger.debug(f"No password entry exists for user ID: {user_id}. Inserting new password entry.")
+            new_password_entry = PasswordEntry(
+                user_id=user_id, 
+                hashed_password=new_password_hash, 
+                expire_date=expire_date
             )
-            logger.debug(f"New password inserted for user ID: {user_id}")
+            session.add(new_password_entry)
+            logger.debug(f"New password entry inserted for user ID: {user_id}")
         
-        # Commit the transaction
-        cursor.connection.commit()
-        logger.debug(f"Committed transaction to the database.")
+        # Commit is handled by the get_db_session context manager
+        # session.commit() is called by the context manager on successful exit
         
-        success = cursor.rowcount > 0
-        if success:
-            logger.info(f"Password successfully updated for user ID: {user_id}")
-        else:
-            logger.warning(f"Password update had no effect for user ID: {user_id}")
-        return success
+        # SQLAlchemy ORM operations don't return rowcount directly like cursor.rowcount.
+        # Success is typically assumed if no exception is raised.
+        logger.info(f"Password successfully updated/inserted for user ID: {user_id}")
+        return True # Return True on success
 
 
 def verify_credentials(username, password_hash):
     logger.info(f"Verifying credentials for username: {username}")
-    from services.database.users import get_user_id
+    # No need to import get_user_id from users, can query User model directly
     
-    logger.debug(f"Fetching user ID for username: {username}")
-    user_id = get_user_id(username)
-    if not user_id:
-        logger.warning(f"User ID not found for username: {username}")
-        return False
-    
-    logger.debug(f"User ID for username {username} is {user_id}. Verifying password.")
-    logger.debug(f"Attempting to get a database cursor.")
-    with get_db_cursor() as cursor:
-        logger.debug(f"Got a database cursor. Executing query to fetch password details.")
-        cursor.execute(
-            "SELECT hashed_password, expire_date FROM passwords WHERE user_id = %s;", 
-            (user_id,)
-        )
+    logger.debug(f"Attempting to get a database session.")
+    with get_db_session() as session:
+        logger.debug(f"Got a database session. Fetching user by username: {username}")
+        user = session.query(User).filter(User.name == username).first()
         
-        logger.debug(f"Executed query to fetch password details. Fetching result.")
-        result = cursor.fetchone()
+        if not user:
+            logger.warning(f"User not found for username: {username}")
+            return False
         
-        if not result:
-            logger.warning(f"No password found for user ID: {user_id}")
+        logger.debug(f"User ID for username {username} is {user.user_id}. Verifying password.")
+        
+        password_entry = session.query(PasswordEntry).filter(PasswordEntry.user_id == user.user_id).first()
+        
+        if not password_entry:
+            logger.warning(f"No password found for user ID: {user.user_id}")
             return False
             
-        stored_hash, expire_date = result
-        logger.debug(f"Found password for user ID: {user_id}. Checking expiration.")
+        stored_hash = password_entry.hashed_password
+        expire_date = password_entry.expire_date
+        logger.debug(f"Found password for user ID: {user.user_id}. Stored hash: {stored_hash[:5]}..., Expire date: {expire_date}")
         
-        logger.debug(f"Checking if password is expired. Expiration date: {expire_date}")
+        logger.debug(f"Checking if password is expired. Current time: {datetime.datetime.now()}")
         if expire_date < datetime.datetime.now():
-            logger.warning(f"Password for user ID: {user_id} is expired (Expired: {expire_date})")
+            logger.warning(f"Password for user ID: {user.user_id} is expired (Expired: {expire_date})")
             return False
         
-        logger.debug(f"Password is valid. Comparing hashes.")
+        logger.debug(f"Password is not expired. Comparing provided hash with stored hash.")
         matches = stored_hash == password_hash
+        
         if matches:
-            logger.debug(f"Password hash matches for user ID: {user_id}")
-        else:
-            logger.debug(f"Password hash does not match for user ID: {user_id}")
-        if matches:
+            logger.debug(f"Password hash matches for user ID: {user.user_id}")
             logger.info(f"Credentials verified successfully for username: {username}")
         else:
+            logger.debug(f"Password hash does not match for user ID: {user.user_id}")
             logger.warning(f"Invalid password provided for username: {username}")
         return matches
 
 
 def is_password_expired(user_id):
     logger.info(f"Checking if password is expired for user ID: {user_id}")
-    logger.debug(f"Attempting to get a database cursor.")
-    with get_db_cursor() as cursor:
-        logger.debug(f"Got a database cursor. Executing query to fetch password expiration date.")
-        cursor.execute("SELECT expire_date FROM passwords WHERE user_id = %s;", (user_id,))
+    logger.debug(f"Attempting to get a database session.")
+    with get_db_session() as session:
+        logger.debug(f"Got a database session. Executing query to fetch password entry.")
+        password_entry = session.query(PasswordEntry).filter(PasswordEntry.user_id == user_id).first()
         
-        logger.debug(f"Executed query to fetch password expiration date. Fetching result.")
-        result = cursor.fetchone()
-        
-        if not result:
-            logger.warning(f"No password found for user ID: {user_id}")
-            return True
+        if not password_entry:
+            logger.warning(f"No password found for user ID: {user_id}. Considering as expired.")
+            return True # If no password record, treat as expired or invalid
             
-        expire_date = result[0]
+        expire_date = password_entry.expire_date
         is_expired = expire_date < datetime.datetime.now()
         
         if is_expired:
