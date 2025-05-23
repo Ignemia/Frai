@@ -1,4 +1,5 @@
 """
+from test_mock_helper import List
 Chat API endpoints for Personal Chatter application.
 
 This module provides REST API endpoints for chat operations including:
@@ -9,7 +10,7 @@ This module provides REST API endpoints for chat operations including:
 - Closing chats
 """
 import logging
-from typing import List, Dict, Any, Optional
+from typing import  Dict, Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Path, Query
 from pydantic import BaseModel
 from starlette.websockets import WebSocketState
@@ -183,8 +184,7 @@ get_websocket_progress_manager().register_connection_manager(manager)
     "/new",
     response_model=NewChatResponse,
     summary="Create a new chat",
-    status_code=201,
-)
+    status_code=201)
 async def create_new_chat(
     request: NewChatRequest, 
     session_token: str = Depends(get_session_token)
@@ -218,8 +218,7 @@ async def create_new_chat(
     "/list",
     response_model=ChatListResponse,
     summary="List all user chats",
-    status_code=200,
-)
+    status_code=200)
 async def get_user_chats(session_token: str = Depends(get_session_token)):
     """
     List all chats for the authenticated user.
@@ -254,8 +253,7 @@ async def get_user_chats(session_token: str = Depends(get_session_token)):
     "/{chat_id}",
     response_model=ChatHistoryResponse,
     summary="Get chat history",
-    status_code=200,
-)
+    status_code=200)
 async def get_chat(
     chat_id: str = Path(..., description="ID of the chat to retrieve"),
     session_token: str = Depends(get_session_token)
@@ -308,8 +306,7 @@ async def get_chat(
     "/{chat_id}/close",
     response_model=dict,
     summary="Close a chat session",
-    status_code=200,
-)
+    status_code=200)
 async def close_chat(
     request: CloseChatRequest,
     chat_id: str = Path(..., description="ID of the chat to close"),

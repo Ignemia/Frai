@@ -1,5 +1,6 @@
 from services.state import get_state
 from services.database.chats import list_user_chats
+from test_mock_helper import List
 
 def list_chats_command():
     """

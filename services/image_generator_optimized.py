@@ -1,4 +1,5 @@
 """
+from test_mock_helper import List
 Optimized Image generation service for Personal Chatter.
 
 This module handles the generation of images using the Flux.1 model
@@ -12,7 +13,7 @@ import threading
 import asyncio
 import weakref
 import gc
-from typing import Dict, Optional, Any, Tuple, Callable, Union, List
+from typing import Dict, List, Optional, Any, Tuple, Callable, Union 
 from pathlib import Path
 import torch
 

@@ -1,4 +1,5 @@
 """
+from test_mock_helper import List
 User memory service for Personal Chatter.
 
 This module handles storing and retrieving personal information and general memory
@@ -8,7 +9,7 @@ import logging
 import os
 import json
 import time
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger(__name__)
 

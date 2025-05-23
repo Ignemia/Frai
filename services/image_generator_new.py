@@ -1,4 +1,5 @@
 """
+from test_mock_helper import List
 Main Image generation service for Personal Chatter.
 
 This module serves as the primary interface for image generation,
@@ -9,7 +10,7 @@ import os
 import logging
 import time
 import asyncio
-from typing import Dict, Optional, Any, Tuple, Callable, Union, List
+from typing import Dict, Optional, Any, Tuple, Callable, Union, 
 from pathlib import Path
 
 from services.config import get_config

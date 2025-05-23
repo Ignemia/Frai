@@ -1,4 +1,5 @@
 """
+from test_mock_helper import List
 Image Generation API endpoints for Personal Chatter application.
 
 This module provides REST API endpoints for image generation operations including:
@@ -9,7 +10,7 @@ This module provides REST API endpoints for image generation operations includin
 """
 import logging
 import asyncio
-from typing import Dict, Optional, Any, List
+from typing import Dict, List, Optional, Any, 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query, File, UploadFile
 from pydantic import BaseModel, Field
 from starlette.websockets import WebSocketState
@@ -121,8 +122,7 @@ image_router = APIRouter(prefix="/image", tags=["image"])
     "/generate",
     response_model=ImageGenerationResponse,
     summary="Generate an image from text prompt",
-    status_code=200,
-)
+    status_code=200)
 async def generate_image_endpoint(
     request: ImageGenerationRequest,
     session_token: str = Depends(get_session_token)
@@ -201,8 +201,7 @@ async def generate_image_endpoint(
     "/generate-with-feedback",
     response_model=ImageGenerationResponse,
     summary="Generate an image with feedback integration",
-    status_code=200,
-)
+    status_code=200)
 async def generate_image_with_feedback_endpoint(
     request: GenerationWithFeedbackRequest,
     session_token: str = Depends(get_session_token)
@@ -281,8 +280,7 @@ async def generate_image_with_feedback_endpoint(
     "/image-to-image",
     response_model=ImageGenerationResponse,
     summary="Generate an image from an input image and text prompt",
-    status_code=200,
-)
+    status_code=200)
 async def image_to_image_endpoint(
     prompt: str = Field(..., description="Text prompt for image transformation"),
     strength: float = Field(0.7, description="Transformation strength"),
@@ -412,8 +410,7 @@ async def image_to_image_endpoint(
     "/status",
     response_model=ModelStatusResponse,
     summary="Get image generation model status",
-    status_code=200,
-)
+    status_code=200)
 async def get_model_status_endpoint(session_token: str = Depends(get_session_token)):
     """
     Get the current status of the image generation models and system.
@@ -446,8 +443,7 @@ async def get_model_status_endpoint(session_token: str = Depends(get_session_tok
     "/model/unload",
     response_model=dict,
     summary="Unload the image generation model from memory",
-    status_code=200,
-)
+    status_code=200)
 async def unload_model_endpoint(session_token: str = Depends(get_session_token)):
     """
     Unload the image generation model from memory to free up resources.
@@ -476,8 +472,7 @@ async def unload_model_endpoint(session_token: str = Depends(get_session_token))
     "/model/reload",
     response_model=dict,
     summary="Reload the image generation model",
-    status_code=200,
-)
+    status_code=200)
 async def reload_model_endpoint(session_token: str = Depends(get_session_token)):
     """
     Reload the image generation model, useful for recovering from errors.
@@ -506,8 +501,7 @@ async def reload_model_endpoint(session_token: str = Depends(get_session_token))
     "/validate-prompt",
     response_model=PromptValidationResponse,
     summary="Validate a text prompt for image generation",
-    status_code=200,
-)
+    status_code=200)
 async def validate_prompt_endpoint(
     request: PromptValidationRequest,
     session_token: str = Depends(get_session_token)
@@ -539,8 +533,7 @@ async def validate_prompt_endpoint(
     "/styles",
     response_model=List[Dict[str, str]],
     summary="Get available style presets",
-    status_code=200,
-)
+    status_code=200)
 async def get_available_styles(session_token: str = Depends(get_session_token)):
     """
     Get a list of available style presets for image generation.

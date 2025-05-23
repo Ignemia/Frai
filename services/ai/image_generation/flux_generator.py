@@ -19,7 +19,7 @@ from services.config import get_config
 from .memory_manager import (
     clear_gpu_memory, move_pipeline_to_gpu, move_pipeline_to_cpu,
     update_access_time, schedule_offload, apply_memory_optimizations,
-    get_memory_status
+    apply_memory_optimizations_manual, get_memory_status
 )
 from .progress_tracker import create_progress_callback, unregister_progress_callback
 from .style_presets import StylePreset, enhance_prompt_with_style
@@ -30,13 +30,13 @@ logger = logging.getLogger(__name__)
 # Load configuration
 config = get_config()
 
-# Constants for image generation
+# Constants for image generation (optimized for GPU memory constraints)
 MODEL_PATH = config.get("models", {}).get("flux_image_path", "./models/FLUX.1-dev")
-IMG_DEFAULT_HEIGHT = 1024
-IMG_DEFAULT_WIDTH = 1024
-NUM_INFERENCE_STEPS = 35
+IMG_DEFAULT_HEIGHT = 512  # Reduced from 1024 for memory efficiency
+IMG_DEFAULT_WIDTH = 512   # Reduced from 1024 for memory efficiency
+NUM_INFERENCE_STEPS = 20  # Reduced from 35 for faster generation and less memory usage
 GUIDANCE_SCALE = 7.0
-MAX_SEQUENCE_LENGTH = 512
+MAX_SEQUENCE_LENGTH = 256  # Reduced from 512 for memory efficiency
 OUTPUT_DIR = "./outputs"
 
 # Global pipeline objects
@@ -86,38 +86,48 @@ def _get_flux_pipeline():
             # Log model files for debugging
             model_files = os.listdir(MODEL_PATH)
             logger.info(f"Found {len(model_files)} files in model directory")
-            
-            # Log GPU information if available
+              # Log GPU information if available
             if torch.cuda.is_available():
                 logger.info(f"GPU: {torch.cuda.get_device_name(0)}")
                 props = torch.cuda.get_device_properties(0)
                 logger.info(f"Total GPU memory: {props.total_memory / 1e9:.2f} GB")
-                logger.info(f"Available GPU memory: {torch.cuda.mem_get_info()[0] / 1e9:.2f} GB")
+                available_memory = torch.cuda.mem_get_info()[0] / 1e9
+                logger.info(f"Available GPU memory: {available_memory:.2f} GB")
                 
                 # Clear CUDA cache before loading
                 clear_gpu_memory()
+                
+                # Set environment variable for better memory management
+                os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
+                
+                # Load directly to GPU if we have enough memory (>8GB available)
+                target_device = "cuda" if available_memory > 8.0 else "cpu"
+                logger.info(f"Loading model to: {target_device}")
             else:
                 logger.warning("CUDA not available, using CPU (will be slow)")
+                target_device = "cpu"
             
-            # Load the pipeline with specific Flux.1 optimizations
-            logger.info("Loading Flux.1 pipeline with memory optimizations")
-            
-            # Optimized loading for Windows without Triton
+            # Load the pipeline with GPU-prioritized optimizations
+            logger.info("Loading Flux.1 pipeline with GPU-prioritized settings")            # Optimized loading that prioritizes GPU
             _flux_pipeline = FluxPipeline.from_pretrained(
                 MODEL_PATH,
-                torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-                device_map=None,  # Load on CPU first
-                low_cpu_mem_usage=True,  # Enable CPU memory optimization
+                torch_dtype=torch.float16 if target_device == "cuda" else torch.float32,  # Use fp16 on GPU for memory efficiency
+                device_map="balanced" if target_device == "cuda" else None,  # Use balanced device mapping for GPU
+                low_cpu_mem_usage=True,  # Always enable this
                 use_safetensors=True,
-                variant="fp16" if torch.cuda.is_available() else None,
-                # Windows optimizations without Triton
-                use_auth_token=False,
+                variant=None,  # Don't specify variant, let it use what's available
                 local_files_only=True
             )
             
-            # Move to CPU explicitly and apply optimizations
-            _flux_pipeline = _flux_pipeline.to("cpu")
-            _flux_pipeline = apply_memory_optimizations(_flux_pipeline)
+            # Move to target device
+            if target_device == "cpu":
+                _flux_pipeline = _flux_pipeline.to("cpu")
+            
+            # Apply GPU-prioritized memory optimizations
+            _flux_pipeline = apply_memory_optimizations_manual(_flux_pipeline)
+            
+            # Apply memory optimizations but avoid model CPU offload since we'll manually manage GPU/CPU moves
+            _flux_pipeline = apply_memory_optimizations_manual(_flux_pipeline)
             
             logger.info(f"Flux.1 model loaded in {time.time() - start_time:.2f} seconds")
             update_access_time()
@@ -185,8 +195,7 @@ def generate_image(
     if pipeline is None:
         logger.error("Failed to initialize Flux.1 pipeline")
         return None, None
-    
-    # Set up progress tracking
+      # Set up progress tracking
     progress_cb = None
     if session_id:
         progress_cb = create_progress_callback(
@@ -195,13 +204,42 @@ def generate_image(
             external_callback=progress_callback,
             save_checkpoints=False  # Can be made configurable
         )
+      # Check GPU memory before attempting generation
+    can_generate, memory_message = check_gpu_memory_for_generation(height, width, steps)
+    if not can_generate:
+        logger.error(f"Memory check failed: {memory_message}")
+        logger.info("Consider reducing image size (e.g., 256x256) or inference steps (e.g., 10-15)")
+        return None, None
     
     try:
-        # Move pipeline to GPU for inference
+        # Aggressive memory cleanup before generation
+        import gc
+        gc.collect()
+        clear_gpu_memory()
+        
+        # Move pipeline to GPU for inference with better error handling
         pipeline = move_pipeline_to_gpu(pipeline)
+        
+        # Log memory status right before generation
+        if torch.cuda.is_available():
+            free_memory, total_memory = torch.cuda.mem_get_info()
+            free_memory_gb = free_memory / 1e9
+            total_memory_gb = total_memory / 1e9
+            logger.info(f"GPU memory before generation: {free_memory_gb:.2f}GB free / {total_memory_gb:.2f}GB total")
         
         # Generate the image
         logger.info(f"Generating image with {steps} steps")
+        
+        # For small images, use plms scheduler if available for better memory efficiency
+        if height <= 256 and width <= 256 and hasattr(pipeline, 'scheduler') and hasattr(pipeline.scheduler, 'config'):
+            logger.debug("Using optimized memory settings for small images")
+            # Try to optimize scheduler for memory efficiency
+            if hasattr(pipeline.scheduler, 'config'):
+                try:
+                    pipeline.scheduler.config.use_karras_sigmas = True
+                    logger.debug("Enabled Karras sigmas for more efficient sampling")
+                except:
+                    pass
         
         generation_kwargs = {
             "prompt": prompt,
@@ -214,39 +252,48 @@ def generate_image(
         
         if negative_prompt:
             generation_kwargs["negative_prompt"] = negative_prompt
-        
-        # For progress tracking, we need to be more careful with the callback
+          # For progress tracking, we need to be more careful with the callback
         # Some diffusers versions have issues with callbacks, so wrap in try-catch
         if progress_cb:
             try:
-                # Use a simpler callback approach for better compatibility
-                def simple_callback(step, timestep, latents):
-                    progress_cb(step, steps, step / steps, time.time() - generation_start)
-                
-                generation_kwargs["callback"] = simple_callback
-                generation_kwargs["callback_steps"] = 1
-                logger.debug("Progress callback configured with simple wrapper")
+                # Check if this version of FluxPipeline supports callbacks
+                if hasattr(pipeline, "register_scheduler_callback"):
+                    # Use the register_scheduler_callback method if available (newer diffusers)
+                    def simple_callback(step, timestep, latents):
+                        progress_cb(step, steps, step / steps, time.time() - generation_start)
+                    
+                    pipeline.register_scheduler_callback(simple_callback)
+                    logger.debug("Progress callback configured with scheduler callback registry")
+                    
+                # Do not add callback to generation_kwargs as FLUX.1 might not support it
+                # Some versions of diffusers don't support direct callback parameter
             except Exception as e:
                 logger.warning(f"Progress callback not supported: {e}")
                 # Continue without progress callback
         
         logger.info("Starting Flux.1 image generation...")
-        generation_start = time.time()
+        generation_start = time.time()        # Use threading with timeout for cross-platform compatibility
+        import threading
+        import concurrent.futures
         
-        # Add timeout protection for the generation
-        def timeout_handler(signum, frame):
-            raise TimeoutError("Image generation timed out after 5 minutes")
-        
-        # Set 5-minute timeout (can be made configurable)
-        old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(300)  # 5 minutes
-        
-        try:
+        # Define a function to run the generation with timeout
+        def run_generation_with_timeout():
             with torch.inference_mode():
-                result = pipeline(**generation_kwargs)
-        finally:
-            signal.alarm(0)  # Cancel the alarm
-            signal.signal(signal.SIGALRM, old_handler)  # Restore old handler
+                return pipeline(**generation_kwargs)
+        
+        # Use ThreadPoolExecutor for timeout handling that works on all platforms
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(run_generation_with_timeout)
+            try:
+                # 5-minute timeout (300 seconds)
+                result = future.result(timeout=300)
+            except concurrent.futures.TimeoutError:
+                logger.error("Image generation timed out after 5 minutes")
+                # Cancel the future if possible and clean up
+                future.cancel()
+                # Force GPU memory cleanup
+                clear_gpu_memory()
+                raise TimeoutError("Image generation timed out after 5 minutes")
         
         generation_time = time.time() - generation_start
         logger.info(f"Image generation completed in {generation_time:.2f} seconds")
@@ -268,8 +315,7 @@ def generate_image(
             
             # Schedule pipeline offload after a delay
             schedule_offload(pipeline)
-            
-            # Clean up progress tracking
+              # Clean up progress tracking
             if session_id and progress_cb:
                 unregister_progress_callback(session_id)
             
@@ -283,10 +329,23 @@ def generate_image(
             
     except torch.cuda.OutOfMemoryError as e:
         logger.error(f"GPU out of memory during generation: {e}")
-        logger.info("Try reducing image size or number of steps")
+        logger.info("Moving pipeline to CPU and clearing memory...")
         
         # Move pipeline back to CPU and clear memory
-        move_pipeline_to_cpu(pipeline)
+        pipeline = move_pipeline_to_cpu(pipeline)
+        clear_gpu_memory()
+        
+        # Clean up progress tracking
+        if session_id:
+            unregister_progress_callback(session_id)
+        
+        # Suggest lower settings
+        logger.warning(f"Current settings: {width}x{height}, {steps} steps")
+        logger.warning("Try using: 256x256 resolution with 10-15 inference steps")
+        
+        return None, None
+        
+        return None, None
         
         return None, None
         
@@ -589,6 +648,86 @@ def validate_prompt(prompt: str) -> Tuple[bool, str, Optional[str]]:
         message += f". Suggestions: {'; '.join(suggestions)}"
     
     return True, message, suggested_prompt
+
+def check_gpu_memory_for_generation(height: int, width: int, steps: int) -> Tuple[bool, str]:
+    """
+    Check if there's sufficient GPU memory for the requested generation parameters.
+    
+    Args:
+        height: Image height in pixels
+        width: Image width in pixels
+        steps: Number of inference steps
+        
+    Returns:
+        Tuple of (can_generate: bool, message: str)
+    """
+    # Small images should always be allowed to attempt generation regardless of memory checks
+    if height <= 256 and width <= 256 and steps <= 15:
+        message = f"Small image requested ({height}x{width}, {steps} steps) - bypassing memory check"
+        logger.info(message)
+        return True, message
+        
+    if not torch.cuda.is_available():
+        return True, "CUDA not available, will use CPU"
+    
+    try:
+        # Get current GPU memory status
+        total_memory = torch.cuda.get_device_properties(0).total_memory / 1e9
+        free_memory, total_device_memory = torch.cuda.mem_get_info()
+        free_memory_gb = free_memory / 1e9
+        reserved_memory_gb = torch.cuda.memory_reserved() / 1e9
+        allocated_memory_gb = torch.cuda.memory_allocated() / 1e9
+        
+        # Calculate free memory within reserved blocks
+        free_reserved_memory_gb = reserved_memory_gb - allocated_memory_gb
+        
+        # Actual free memory = completely free + free reserved
+        effective_free_memory = free_memory_gb + max(0, free_reserved_memory_gb)
+        
+        logger.debug(f"Memory status: Free={free_memory_gb:.2f}GB, Reserved={reserved_memory_gb:.2f}GB, Allocated={allocated_memory_gb:.2f}GB")
+        logger.debug(f"Effective free memory: {effective_free_memory:.2f}GB")
+        
+        # For small images, we can proceed even with limited memory
+        if height <= 384 and width <= 384 and steps <= 20:
+            if effective_free_memory > 0.2:  # Need at least 200MB free
+                message = f"Small image generation should fit in available memory: {effective_free_memory:.2f}GB available"
+                logger.info(message)
+                return True, message
+        
+        # For larger images or if model loaded, estimate realistically
+        resolution_factor = (height * width) / (512 * 512)
+        base_memory = 1.0  # Base memory for generation (1GB for 512x512)
+        estimated_memory = base_memory * resolution_factor
+        
+        # Add step factor (more steps = more intermediate tensors)
+        step_factor = steps / 20  # Normalize to 20 steps
+        estimated_memory *= step_factor
+        
+        logger.debug(f"Memory estimate: {estimated_memory:.2f}GB for {height}x{width}, {steps} steps")
+        
+        # Check if we can fit the generation
+        if effective_free_memory > estimated_memory:
+            message = f"Memory check passed: {effective_free_memory:.2f}GB available, need ~{estimated_memory:.2f}GB"
+            logger.info(message)
+            return True, message
+        else:
+            # If close enough, let it try anyway
+            if effective_free_memory > (estimated_memory * 0.8):
+                message = f"Memory might be tight, but we'll try: {effective_free_memory:.2f}GB available, need ~{estimated_memory:.2f}GB"
+                logger.warning(message)
+                return True, message
+            else:
+                message = f"Insufficient GPU memory: {effective_free_memory:.2f}GB available, need ~{estimated_memory:.2f}GB"
+                logger.warning(message)
+                return False, message
+            
+    except Exception as e:
+        logger.warning(f"Could not check GPU memory: {e}")
+        # If memory check fails, proceed cautiously for small images
+        if height <= 256 and width <= 256 and steps <= 15:
+            return True, "Memory check failed, proceeding with small image"
+        else:
+            return False, f"Memory check failed: {e}"
 
 # Export the main functions for use by other modules
 __all__ = [

@@ -1,4 +1,5 @@
 """
+from test_mock_helper import List
 Main Image generation service for Personal Chatter.
 
 This module serves as the primary interface for image generation,
@@ -334,6 +335,103 @@ def get_flux_model_status() -> Dict[str, Any]:
     """Backward compatibility wrapper for get_model_status."""
     return get_model_status()
 
+# LangChain Integration
+try:
+    from typing import  Dict, Optional, Any, Callable
+    from langchain.llms.base import LLM
+    from langchain.callbacks.manager import CallbackManagerForLLMRun
+    from langchain.schema import Generation, LLMResult
+    
+    class FluxImageGenerationLLM(LLM):
+        """
+        LangChain-compatible LLM wrapper for Flux.1 image generation.
+        
+        This allows Flux.1 to be used within LangChain pipelines and chains
+        for image generation tasks.
+        """
+        
+        height: int = IMG_DEFAULT_HEIGHT
+        width: int = IMG_DEFAULT_WIDTH
+        steps: int = NUM_INFERENCE_STEPS
+        guidance_scale: float = GUIDANCE_SCALE
+        
+        @property
+        def _llm_type(self) -> str:
+            return "flux_image_generator"
+        
+        def _call(
+            self,
+            prompt: str,
+            stop: Optional[List[str]] = None,
+            run_manager: Optional[CallbackManagerForLLMRun] = None,
+            **kwargs
+        ) -> str:
+            """
+            Generate an image and return the path/URL.
+            
+            Args:
+                prompt: The image generation prompt
+                stop: Not used for image generation
+                run_manager: LangChain callback manager
+                **kwargs: Additional generation parameters
+                
+            Returns:
+                String containing the image path and URL
+            """
+            # Extract parameters from kwargs
+            height = kwargs.get("height", self.height)
+            width = kwargs.get("width", self.width)
+            steps = kwargs.get("steps", self.steps)
+            guidance_scale = kwargs.get("guidance_scale", self.guidance_scale)
+            negative_prompt = kwargs.get("negative_prompt", None)
+            session_id = kwargs.get("session_id", None)
+            
+            # Progress callback integration with LangChain
+            progress_callback = None
+            if run_manager:
+                def langchain_progress_callback(step, total_steps, progress, elapsed_time):
+                    run_manager.on_text(
+                        f"Image generation progress: {progress:.1f}% (step {step}/{total_steps})",
+                        verbose=True
+                    )
+                progress_callback = langchain_progress_callback
+            
+            # Generate the image
+            image_path, image_url = generate_image(
+                prompt=prompt,
+                height=height,
+                width=width,
+                steps=steps,
+                guidance_scale=guidance_scale,
+                negative_prompt=negative_prompt,
+                session_id=session_id,
+                progress_callback=progress_callback
+            )
+            
+            if image_path:
+                return f"Generated image: {image_url} (saved to: {image_path})"
+            else:
+                return "Failed to generate image"
+        
+        async def _acall(
+            self,
+            prompt: str,
+            stop: Optional[List[str]] = None,
+            run_manager: Optional[CallbackManagerForLLMRun] = None,
+            **kwargs
+        ) -> str:
+            """Async version of _call (currently just calls sync version)."""
+            return self._call(prompt, stop, run_manager, **kwargs)
+    
+    logger.info("LangChain integration available")
+    
+except ImportError:
+    logger.debug("LangChain not available, image generation will work without chain integration")
+    class FluxImageGenerationLLM:
+        """Placeholder class when LangChain is not installed."""
+        def __init__(self, *args, **kwargs):
+            raise ImportError("LangChain is not installed. Please install with: pip install langchain langchain-community")
+
 # Export main functions
 __all__ = [
     "generate_image",
@@ -349,5 +447,7 @@ __all__ = [
     # Backward compatibility
     "generate_flux_image",
     "generate_flux_image_async",
-    "get_flux_model_status"
+    "get_flux_model_status",
+    # LangChain integration
+    "FluxImageGenerationLLM"
 ]

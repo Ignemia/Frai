@@ -1,4 +1,5 @@
 """
+from test_mock_helper import List
 WebSocket manager for real-time progress updates.
 
 This module provides a singleton connection manager that can be used
@@ -7,7 +8,7 @@ across the application to send progress updates to connected clients.
 import logging
 import json
 import asyncio
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 from weakref import WeakSet
 
 logger = logging.getLogger(__name__)

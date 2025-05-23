@@ -1,3 +1,5 @@
+from test_mock_helper import List
+
 """
 Global state management module.
 This module provides functions to get and set global state

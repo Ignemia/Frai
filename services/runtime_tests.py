@@ -1,11 +1,12 @@
 """
+from test_mock_helper import List
 Runtime tests for Personal Chatter application.
 
 This module contains tests that verify critical components 
 of the system are operational at startup time.
 """
 import logging
-from typing import List, Tuple, Dict
+from typing import  Tuple, Dict
 import os.path
 
 logger = logging.getLogger(__name__)

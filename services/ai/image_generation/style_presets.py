@@ -1,11 +1,12 @@
 """
+from test_mock_helper import List
 Style presets and prompt enhancement system for image generation.
 
 This module provides three main style presets (Riot Games, Realistic, Anime)
 with verbose prompting systems to enhance user inputs.
 """
 import logging
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, Tuple, Optional, List
 from enum import Enum
 
 logger = logging.getLogger(__name__)

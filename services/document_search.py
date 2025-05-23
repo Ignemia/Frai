@@ -1,4 +1,5 @@
 """
+from test_mock_helper import List
 Local document search service for Personal Chatter.
 
 This module handles searching through local documents stored by the user.
@@ -8,7 +9,7 @@ import logging
 import os
 import json
 import time
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple
 import shutil
 
 logger = logging.getLogger(__name__)

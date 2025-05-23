@@ -13,6 +13,7 @@ from services.cli.list_chats_command import list_chats_command
 from services.cli.chat_command import chat_command
 
 import logging
+from test_mock_helper import List
 
 logger = logging.getLogger(__name__)
 

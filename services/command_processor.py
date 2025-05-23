@@ -1,4 +1,5 @@
 """
+from test_mock_helper import List
 Command processing module for Personal Chatter.
 
 This module handles preprocessing of user messages to detect specific command
@@ -8,7 +9,7 @@ It uses a lightweight model to classify commands before passing to the main LLM.
 import logging
 import re
 from enum import Enum, auto
-from typing import Dict, Optional, Tuple, List, Any
+from typing import Dict, List, Optional, Tuple, Any
 
 from services.chat.llm_interface import send_query
 

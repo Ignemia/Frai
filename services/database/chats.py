@@ -1,4 +1,5 @@
 """
+from test_mock_helper import List
 Database operations for chat management.
 
 This module provides functions for creating, opening, updating, and

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from test_mock_helper import List
 """
 Setup script for Personal Chatter.
 
@@ -10,7 +11,7 @@ import os
 import platform
 import sys
 import subprocess
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 from setuptools import setup, find_packages, Command
 import setuptools.command.develop
 import setuptools.command.install
@@ -470,8 +471,7 @@ if __name__ == "__main__":
                 "pc-chat=main:main",  # Shorter alias
                 "pc-api=api.api:start_backend_api_cli",  # API only entry point
             ],
-        },
-    )
+        })
     
     # Print installation guide if this is a direct install
     if len(sys.argv) > 1 and sys.argv[1] == "install":

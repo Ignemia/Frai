@@ -8,7 +8,7 @@ import logging
 import os
 import time
 import threading
-from typing import Dict, Optional, Any, Tuple, Callable, Union
+from typing import Dict, Optional, Any, Tuple, Callable, Union, List
 from pathlib import Path
 import torch
 from PIL import Image
@@ -317,6 +317,46 @@ def generate_image_to_image(
             unregister_progress_callback(session_id)
         
         return None, None
+
+async def generate_image_to_image_async(
+    prompt: str,
+    source_image_path: str,
+    strength: float = 0.7,
+    guidance_scale: float = 7.5,
+    session_id: str = None,
+    progress_callback: Optional[Callable] = None
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Asynchronous version of image-to-image generation.
+    
+    Args:
+        prompt: Text prompt for the generation
+        source_image_path: Path to the source image
+        strength: How much to change the image (0.0-1.0)
+        guidance_scale: How closely to follow the prompt
+        session_id: Optional session ID for progress tracking
+        progress_callback: Optional callback for progress updates
+        
+    Returns:
+        Tuple containing:
+            - Path to the generated image if successful, None otherwise
+            - URL or relative path to the image for displaying
+    """
+    import asyncio
+    
+    # Run the synchronous function in a thread pool
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(
+        None,
+        lambda: generate_image_to_image(
+            prompt=prompt,
+            source_image_path=source_image_path,
+            strength=strength,
+            guidance_scale=guidance_scale,
+            session_id=session_id,
+            progress_callback=progress_callback
+        )
+    )
 
 def style_transfer_image(
     source_image_path: str,
