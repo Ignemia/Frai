@@ -1,0 +1,16 @@
+include LICENSE
+include README.md
+include setup.py
+include setup.cfg
+include requirements.txt
+include example.env
+
+recursive-include api *
+recursive-include services *
+recursive-include interfaces *
+
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude models *
+recursive-exclude outputs *
+recursive-exclude .venv *

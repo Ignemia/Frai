@@ -1,5 +1,5 @@
 import logging
-from services.chat.pipeline import send_query
+from services.chat.llm_interface import send_query
 
 logger = logging.getLogger(__name__)
 
@@ -20,16 +20,15 @@ def generate_chat_title(messages, max_length=50):
     
     # Take up to 3 user messages to generate the title
     content = "\n".join(messages[:3])
-    
-    # Create a prompt for title generation
+      # Create a prompt for title generation
     prompt = (
         "Based on the following conversation, generate a short, descriptive title "
         f"(maximum {max_length} characters):\n\n{content}"
     )
     
     try:
-        # Use the AI to generate a title
-        title = send_query(prompt, max_tokens=50, temperature=0.7)
+        # Use the AI to generate a title with empty chat history (since this is just for title generation)
+        title, _ = send_query(prompt, [])
         
         # Clean up the title
         title = title.strip().strip('"\'')

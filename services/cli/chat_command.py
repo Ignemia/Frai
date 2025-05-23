@@ -1,7 +1,7 @@
 import logging
 from services.state import get_state, set_state
-from services.database.chats import add_message_to_chat, update_chat_title
-from services.chat.pipeline import send_query
+from services.database.chats import add_message_to_chat, update_chat_title, get_chat_history
+from services.chat.llm_interface import send_query
 from services.cli.title_generator import generate_chat_title, should_update_title
 
 logger = logging.getLogger(__name__)
@@ -32,9 +32,9 @@ def chat_command(user_message):
         if not success:
             print("Failed to save your message. Please try again.")
             return False
-        
-        # Get AI response
-        ai_response = send_query(user_message)
+          # Get AI response
+        chat_history = get_chat_history(chat_id, session_token)
+        ai_response, updated_history = send_query(user_message, chat_history)
         
         # Add AI response to the chat
         success = add_message_to_chat(chat_id, session_token, "agent", ai_response)

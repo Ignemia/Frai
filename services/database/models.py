@@ -14,6 +14,8 @@ class User(Base):
     password_entry = relationship("PasswordEntry", back_populates="user", uselist=False, cascade="all, delete-orphan")
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
     chats = relationship("Chat", back_populates="user", cascade="all, delete-orphan")
+    user_keys = relationship("UserKey", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    user_keys = relationship("UserKey", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 class PasswordEntry(Base):
     __tablename__ = "passwords"
@@ -55,3 +57,10 @@ class Session(Base):
     expires_at = Column(DateTime, nullable=False)
 
     user = relationship("User", back_populates="sessions")
+
+class UserKey(Base):
+    __tablename__ = "user_keys"
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), primary_key=True)
+    encrypted_keys = Column(Text, nullable=False)  # Encrypted RSA private key data
+    
+    user = relationship("User", back_populates="user_keys")

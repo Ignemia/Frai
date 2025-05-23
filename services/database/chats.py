@@ -1,5 +1,13 @@
+"""
+Database operations for chat management.
+
+This module provides functions for creating, opening, updating, and
+managing encrypted chat conversations in the database.
+"""
 import logging
 from services.database.sessions import verify_session_token
+from services.database.connection import get_db_session
+from services.database.models import Chat
 from services.database.chat_database import (
     fetch_chat_and_keys, 
     fetch_chat_encryption_data,
@@ -13,12 +21,15 @@ from services.database.chat_encryption import (
 from services.database.chat_xml import (
     create_empty_chat_xml,
     format_and_append_message,
-    count_user_messages_in_chat
+    count_user_messages_in_chat,
+    parse_chat_xml_to_history
 )
 from services.database.chat_utils import (
     complete_list_user_chats as list_user_chats,
     complete_update_chat_title as update_chat_title,
-    complete_save_chat_content as save_chat_content
+    complete_save_chat_content as save_chat_content,
+    save_updated_chat_content,
+    complete_close_chat as close_chat
 )
 
 logger = logging.getLogger(__name__)
@@ -26,7 +37,17 @@ logger = logging.getLogger(__name__)
 def create_chat(chat_name, session_token):
     """
     Create a new chat for the user with initial encryption.
-    Returns the chat_id if successful, None otherwise.
+    
+    Creates an empty chat XML structure, encrypts it with user-specific keys,
+    and stores the encrypted data in the database.
+    
+    Args:
+        chat_name (str): Name to identify the chat
+        session_token (str): Active session token for authentication
+        
+    Returns:
+        str: The chat_id of the created chat if successful
+        None: If creation fails for any reason
     """
     user_id = verify_session_token(session_token)
     if not user_id:
@@ -193,3 +214,43 @@ def save_chat_content(chat_id, updated_content_xml, session_token): # updated_co
     except Exception as e:
         logger.error(f"Error saving chat content: {e}", exc_info=True)
         return False
+
+def get_chat_history(chat_id, session_token):
+    """
+    Get the chat history for a given chat in a format ready for the LLM.
+    
+    This function:
+    1. Verifies the user session
+    2. Retrieves and decrypts the chat XML
+    3. Parses the XML into a list of message dictionaries with 'role' and 'content' keys
+       that can be directly passed to the LLM interface
+    
+    Args:
+        chat_id (str): ID of the chat to retrieve history for
+        session_token (str): User's session token for authentication
+        
+    Returns:
+        list[dict]: List of message dictionaries in the format:
+            [{'role': 'user'|'assistant', 'content': 'message text'}, ...]
+        Empty list if retrieval fails or chat has no messages
+    """
+    user_id = verify_session_token(session_token)
+    if not user_id:
+        logger.error("Invalid session token when getting chat history")
+        return []
+    
+    try:
+        # Get the decrypted chat XML
+        chat_xml = open_chat(chat_id, session_token)
+        if not chat_xml:
+            logger.warning(f"Could not open chat {chat_id} to get history")
+            return []
+        
+        # Parse XML to chat history format
+        chat_history = parse_chat_xml_to_history(chat_xml)
+        logger.debug(f"Retrieved {len(chat_history)} messages from chat {chat_id}")
+        return chat_history
+        
+    except Exception as e:
+        logger.error(f"Error getting chat history: {e}", exc_info=True)
+        return []

@@ -1,14 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 
-# Assume these Pydantic models are defined in a models.py or similar
-# from ..models import UserRegisterData, UserLoginData, UserTokenData, UserLogoutData, UserDetails
-# Placeholder definitions if you don't have them yet:
-from pydantic import BaseModel
-class UserRegisterData(BaseModel): username: str; password: str # Placeholder
-class UserLoginData(BaseModel): username: str; password: str # Placeholder
-class UserTokenData(BaseModel): token: str # Placeholder
-class UserLogoutData(BaseModel): username: str # Placeholder
-class UserDetails(BaseModel): username: str; email: str # Placeholder
+# Import Pydantic models
+from api.models.auth import (
+    UserRegisterRequest as UserRegisterData,
+    UserLoginRequest as UserLoginData, 
+    TokenResponse,
+    UserResponse,
+    TokenData
+)
+from api.auth import (
+    verify_password, 
+    get_password_hash, 
+    create_access_token, 
+    get_current_user,
+    oauth2_scheme
+)
+# Backward compatibility models
+from .compatibility_models import UserTokenData, UserLogoutData, UserDetails
 
 
 # Assume these service functions are defined in a services.py or similar
@@ -34,7 +43,8 @@ async def validate_token_data(data): return True
 async def user_data_exists_by_token(token): return True
 async def refresh_user_token(token): return "new_mock_token"
 async def service_logout_user(data): return True # Renamed to avoid conflict
-async def get_user_by_username(username): return UserDetails(username=username, email=f"{username}@example.com") # Placeholder
+async def get_user_by_username(username): 
+    return {"username": username, "email": f"{username}@example.com", "is_active": True} # Placeholder
 async def validate_user_token(token: str = Depends(lambda: None)): return True # Placeholder, adjust as needed
 
 
@@ -67,27 +77,47 @@ async def register_user(in_user: UserRegisterData):
 
 @user_router.post(
     "/login",
-    response_model=dict,
-    summary="Log in an existing user",
+    response_model=TokenResponse,
+    summary="Log in an existing user and get access token",
     status_code=200,
 )
-async def login_user(in_user: UserLoginData):
+async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
     """
-    Log in an existing user.
+    Log in an existing user and return a JWT token.
+    
+    This endpoint conforms to the OAuth2 password flow, accepting 
+    form data with username and password fields.
+    
+    Returns:
+        TokenResponse: Access token and token type
     """
     try:
-        if not await validate_user_data(in_user):
-            raise HTTPException(status_code=400, detail="Invalid user data.")
-
-        if not await user_data_exists(in_user.username):
-            raise HTTPException(status_code=400, detail="User does not exist.")
-
-        if not await authenticate_user(in_user):
-            raise HTTPException(status_code=401, detail="Invalid credentials.")
-
-        return {"message": "User logged in successfully."}
+        # In a real implementation, you would verify credentials against your database
+        if not await user_data_exists(form_data.username):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            
+        # In a real implementation, you would verify the password hash
+        # Here we'll assume authentication is successful for any existing user
+        if not await authenticate_user({"username": form_data.username, "password": form_data.password}):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Create access token with the username as the subject
+        access_token = create_access_token(data={"sub": form_data.username})
+        
+        # Return token response
+        return TokenResponse(access_token=access_token, token_type="bearer")
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Login error: {str(e)}")
 
 
 @user_router.post(

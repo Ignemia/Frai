@@ -56,3 +56,39 @@ def count_user_messages_in_chat(chat_xml):
     except Exception as e:
         logger.error(f"Error counting messages in chat XML: {e}")
         return 0
+
+def parse_chat_xml_to_history(chat_xml: str) -> list[dict[str, str]]:
+    """
+    Parse chat XML into a list of chat history messages.
+    
+    Args:
+        chat_xml (str): The XML content of the chat
+        
+    Returns:
+        list[dict[str, str]]: List of messages with 'role' and 'content' keys
+    """
+    try:
+        root = ET.fromstring(chat_xml)
+        chat_history = []
+        
+        # Extract all message elements (system, user, agent/assistant)
+        for element in root:
+            role = element.tag
+            content = element.text or ""
+            
+            # Convert 'agent' role to 'assistant' for consistency with LLM interface
+            if role == "agent":
+                role = "assistant"
+            
+            # Skip elements that don't represent messages
+            if role not in ["system", "user", "assistant"]:
+                continue
+                
+            chat_history.append({"role": role, "content": content})
+        
+        logger.debug(f"Parsed {len(chat_history)} messages from chat XML")
+        return chat_history
+        
+    except Exception as e:
+        logger.error(f"Error parsing chat XML to history: {e}", exc_info=True)
+        return []

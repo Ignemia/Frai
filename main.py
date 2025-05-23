@@ -2,100 +2,81 @@ import dotenv
 dotenv.load_dotenv()
 
 import logging
-import os
+import sys
+import threading
 
-from services.database.connection import start_engine, validate_db_config, check_database_tables_presence, initiate_tables
-from services.cli.navigation import handle_command, is_command, parse_command, process_input, help_command
-from services.state import get_current_app_state
+from services.database.connection import start_engine, init_database
+from services.chat.model_loader import load_model
+from services.cli.cli_handler import start_cli_interface
+from services.runtime_tests import run_all_tests
+from api.api import start_backend_api
 
 # Setup logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-WELCOME_MESSAGE = "Hello! I'm your Personal Chatter companion, ready to chat and help. Simply type your message below to get started, or use /help to see available commands."
-
-database_engine = None
-
-def request_message(state):
-    message = input(f"{state} > ")
-    if is_command(message):
-        command, args = parse_command(message) 
-        handle_command(command, args)
-
-def init_database():
-    """Initialize database tables with proper error handling"""
-    try:
-        logger.info("Checking database tables...")
-        table_check = check_database_tables_presence()
-        
-        if not table_check:
-            logger.info("Creating necessary database tables...")
-            if not initiate_tables():
-                logger.error("Failed to create database tables")
-                return False
-            logger.info("Database tables created successfully")
-        else:
-            logger.info("Database tables exist, performing schema upgrades if needed...")
-            # Import and call the upgrade function
-            from services.database.connection import upgrade_database_schema
-            if not upgrade_database_schema():
-                logger.error("Failed to upgrade database schema")
-                return False
-            logger.info("Database schema is up to date")
-        
-        return True
-    except Exception as e:
-        logger.error(f"Database initialization error: {e}")
-        return False
-
 def main():
-    global database_engine
+    """
+    Main orchestration function for the Personal Chatter application.
+    Initializes services, loads components, and starts interfaces.
+    """
+    logger.info("Starting Personal Chatter application...")
+
+    # Initialize database
+    logger.info("Initializing database...")
+    if not start_engine():  # start_engine now also handles init_database logic or should be separate
+        logger.critical("Failed to establish database engine. Exiting.")
+        print("Critical: Database engine could not be initialized. Application cannot start.")
+        return 1  # Use return codes for errors
     
-    # Initialize database connection
-    database_engine = start_engine()
-    if not database_engine:
-        print("Failed to establish database engine. Please check your configuration.")
-        return 1
-    
-    # Initialize database tables
     if not init_database():
-        print("Database initialization failed. Please check the logs for details.")
+        logger.critical("Database initialization failed. Exiting.")
+        print("Critical: Database could not be initialized. Application cannot start.")
         return 1
-    
+
     # Load the AI model
+    logger.info("Loading AI model...")
     try:
-        import services.chat.pipeline as chat_pipeline
-        chat_pipeline.load_model()
+        load_model()
+        logger.info("AI model loaded successfully.")
     except Exception as e:
-        logger.error(f"Failed to load AI model: {e}")
-        print("Failed to load AI model. Some features may not work properly.")
-    
-    # Clear screen and show welcome message
-    os.system("cls" if os.name == "nt" else "clear")
-    print(WELCOME_MESSAGE)
-    
-    help_command()
-    
-    while True:
-        try:
-            # Get the current state to show in prompt
-            current_state = get_current_app_state()
-            
-            # Display prompt with current state
-            user_input = input(f"\n{current_state} > ").strip()
-            
-            if not user_input:
-                continue
-                
-            process_input(user_input)
-        except KeyboardInterrupt:
-            print("\nExiting application. Goodbye!")
-            break
-        except Exception as e:
-            logger.error(f"Error processing input: {e}")
-            print("An error occurred. Please try again.")
-    
+        logger.error(f"Failed to load AI model: {e}", exc_info=True)
+        # Depending on criticality, you might choose to exit or continue with limited functionality
+        print("Warning: Failed to load AI model. Some features may not work properly.")
+        # return 1 # Uncomment if model is critical for startup    # Run runtime tests
+    logger.info("Running runtime tests...")
+    try:
+        if not run_all_tests():
+            logger.warning("One or more runtime tests failed. Check logs for details.")
+            print("Warning: Some runtime tests failed. Application may have limited functionality.")
+        else:
+            logger.info("All runtime tests passed.")
+    except Exception as e:
+        logger.error(f"Error during runtime tests: {e}", exc_info=True)
+        print("Warning: Could not complete runtime tests.")    # Start API interface in a separate thread
+    logger.info("Starting API interface...")
+    try:
+        # Start API in a separate thread so it doesn't block the CLI
+        api_thread = threading.Thread(target=start_backend_api, daemon=True)
+        api_thread.start()
+        logger.info("API interface started successfully in background thread.")
+        print("API server running at http://0.0.0.0:8000")
+    except Exception as e:
+        logger.error(f"Failed to start API interface: {e}", exc_info=True)
+        print("Warning: API interface could not be started.")
+
+    # Start CLI interface
+    logger.info("Starting CLI interface...")
+    try:
+        start_cli_interface()
+    except Exception as e:
+        logger.critical(f"CLI interface failed to start or crashed: {e}", exc_info=True)
+        print("Critical: The command line interface encountered an error and had to close.")
+        return 1
+
+    logger.info("Personal Chatter application finished.")
     return 0
 
 if __name__ == "__main__":
-    main()
+    return_code = main()
+    sys.exit(return_code)  # Exit with the return code from main
