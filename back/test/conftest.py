@@ -22,7 +22,7 @@ orchestrator_path = project_root / "orchestrator"
 sys.path.insert(0, str(orchestrator_path))
 
 try:
-    from chat import MessageType
+    from orchestrator.chat import MessageType
 except ImportError:
     # Fallback import path
     sys.path.insert(0, str(project_root / "orchestrator" / "chat"))
@@ -149,13 +149,13 @@ class TestAssertions:
 def create_mock_moderator(sentiment_enabled=True):
     """Create a mock moderator for testing."""
     try:
-        from chatmod import ChatModerator
+        from orchestrator.chatmod import ChatModerator
     except ImportError:
         # Fallback import path
         sys.path.insert(0, str(project_root / "orchestrator" / "chatmod"))
         from __init__ import ChatModerator
-    
-    with patch('chatmod.pipeline') as mock_pipeline:
+
+    with patch('orchestrator.chatmod.pipeline') as mock_pipeline:
         if sentiment_enabled:
             mock_analyzer = MockSentimentAnalyzer()
             mock_pipeline.return_value = mock_analyzer

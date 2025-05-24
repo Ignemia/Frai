@@ -140,10 +140,10 @@ class ChatModerator:
             user_id: Optional user ID for context
             
         Returns:
-            Moderation result dictionary
+            Moderation result dictionary with flags, not approval.
         """
         result = {
-            "approved": False,
+            # "approved": False, # Removed
             "message": message,
             "user_id": user_id,
             "filters_triggered": [],
@@ -180,12 +180,13 @@ class ChatModerator:
                 if sentiment.get("label") == "NEGATIVE" and sentiment.get("score", 0) > 0.9:
                     result["filters_triggered"].append("very_negative")
                     result["warnings"].append("Message has very negative sentiment")
-              # Approve message if no critical filters triggered
-            critical_filters = ["toxic_content", "spam"]
-            if not any(f in critical_filters for f in result["filters_triggered"]):
-                result["approved"] = True
             
-            logger.info(f"Message moderation completed: approved={result['approved']}, filters={result['filters_triggered']}")
+            # Removed approval logic:
+            # critical_filters = ["toxic_content", "spam"]
+            # if not any(f in critical_filters for f in result["filters_triggered"]):
+            #     result["approved"] = True
+            
+            logger.info(f"Message moderation completed: filters={result['filters_triggered']}")
             
         except Exception as e:
             logger.error(f"Error during message moderation: {e}")
@@ -195,18 +196,18 @@ class ChatModerator:
     
     def filter_response(self, response: str) -> Dict:
         """
-        Filter and validate AI-generated responses.
+        Filter and validate AI-generated responses by flagging, not altering.
         
         Args:
             response: The AI response to filter
             
         Returns:
-            Filtering result dictionary
+            Filtering result dictionary with flags.
         """
         result = {
-            "approved": False,
-            "response": response,
-            "filtered_response": response,
+            # "approved": False, # Removed
+            "original_response": response, # Renamed from "response" for clarity
+            # "filtered_response": response, # Removed
             "filters_applied": [],
             "warnings": []
         }
@@ -215,27 +216,29 @@ class ChatModerator:
             # Basic validation
             is_valid, error_msg = self.validate_message_format(response)
             if not is_valid:
-                result["warnings"].append(error_msg)
-                return result
-            
-            # Remove any potential harmful content patterns
-            filtered_response = response
-            
-            # Remove URLs that might be suspicious
-            url_pattern = r'https?://[^\s]+'
-            if re.search(url_pattern, filtered_response):
-                filtered_response = re.sub(url_pattern, '[URL removed]', filtered_response)
-                result["filters_applied"].append("url_removal")
-            
+                result["warnings"].append(error_msg) # Add to warnings, don't necessarily stop
+                # If basic validation fails, we might not want to proceed with other checks,
+                # or just flag it and let frontend decide. For now, let's flag and continue.
+                result["filters_applied"].append("invalid_format")
+
+
+            # Check for URLs that might be suspicious - now only flags
+            url_pattern = r'https?://[^\\s]+'
+            if re.search(url_pattern, response): # Check original response
+                # filtered_response = re.sub(url_pattern, '[URL removed]', filtered_response) # No longer modifying
+                result["filters_applied"].append("url_detected")
+                result["warnings"].append("URL detected in response")
+
             # Check for toxic content in response
-            is_toxic, _ = self.check_toxic_content(filtered_response)
+            is_toxic, toxic_reason = self.check_toxic_content(response) # Check original response
             if is_toxic:
-                result["warnings"].append("AI response contains potentially harmful content")
-                # Could implement response replacement logic here
-            else:
-                result["approved"] = True
+                result["filters_applied"].append("toxic_content")
+                result["warnings"].append(toxic_reason if toxic_reason else "AI response contains potentially harmful content")
+            # Removed approval logic:
+            # else:
+            #     result["approved"] = True
             
-            result["filtered_response"] = filtered_response
+            # result["filtered_response"] = filtered_response # Removed
             
         except Exception as e:
             logger.error(f"Error filtering response: {e}")

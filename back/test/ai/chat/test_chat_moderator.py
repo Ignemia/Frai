@@ -43,7 +43,7 @@ class TestChatModerator:
         """Create a ChatModerator instance without sentiment analysis."""
         with patch('chatmod.pipeline', side_effect=Exception("Model not available")):
             return ChatModerator()
-
+    
     def test_init_with_local_sentiment_analyzer(self):
         """Test ChatModerator initialization with local sentiment analyzer."""
         # Mock the local model path to exist
@@ -135,7 +135,6 @@ class TestChatModerator:
             "Yesssssssssssss",
             "Nooooooooooooooo",
         ]
-        
         for message in spam_messages:
             is_spam, reason = moderator.check_spam_patterns(message)
             assert is_spam, f"Message should be detected as spam: {message}"
@@ -162,7 +161,6 @@ class TestChatModerator:
             "This is harmful content",
             "Violence is not the answer",
         ]
-        
         for message in toxic_messages:
             is_toxic, reason = moderator.check_toxic_content(message)
             assert is_toxic, f"Message should be detected as toxic: {message}"
@@ -179,8 +177,8 @@ class TestChatModerator:
         
         assert sentiment["label"] == "NEGATIVE"
         assert sentiment["score"] == 0.8
-        moderator.sentiment_analyzer.assert_called_once_with(message)
-
+        moderator.sentiment_analyzer.assert_called_once_with(message)   
+        
     def test_analyze_sentiment_without_analyzer(self, moderator_no_sentiment):
         """Test sentiment analysis when analyzer is not available."""
         message = "I love this"
@@ -200,7 +198,6 @@ class TestChatModerator:
         assert result["sentiment"]["label"] == "POSITIVE"
         assert result["sentiment"]["score"] == 0.9
         assert len(result["filters_triggered"]) == 0
-
     def test_moderate_message_spam(self, moderator):
         """Test moderation rejection due to spam."""
         spam_message = "HELLOOOOOOOOOOOO"  # More than 10 repeated characters
@@ -263,7 +260,6 @@ class TestChatModerator:
 
 class TestChatModeratorIntegration:
     """Integration tests for ChatModerator with backend AI components."""
-    
     def test_local_sentiment_model_integration(self):
         """Test integration with local sentiment analysis model."""
         # Test that the moderator properly checks for and uses local model
@@ -316,9 +312,8 @@ class TestChatModeratorIntegration:
             mock_pipeline.return_value = MagicMock()
             moderator = ChatModerator()
             
-            # Test with maximum allowed message size using varied content to avoid spam detection
-            words = ["This", "is", "a", "legitimate", "long", "message", "for", "testing", "performance", "with", "backend", "models"]
-            large_message = " ".join(words * (moderator.max_message_length // (len(" ".join(words)) + 1) + 1))[:moderator.max_message_length]
+            # Test with maximum allowed message size
+            large_message = "a" * moderator.max_message_length
             result = moderator.moderate_message(large_message)
             
             assert result["approved"] is True

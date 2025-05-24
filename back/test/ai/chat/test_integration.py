@@ -22,14 +22,14 @@ orchestrator_path = project_root / "orchestrator"
 sys.path.insert(0, str(orchestrator_path))
 
 try:
-    from chatmod import ChatModerator
+    from orchestrator.chatmod import ChatModerator
     from chat import ChatOrchestrator, MessageType
 except ImportError:
     # Fallback import paths
     sys.path.insert(0, str(project_root / "orchestrator" / "chatmod"))
     sys.path.insert(0, str(project_root / "orchestrator" / "chat"))
     from __init__ import ChatModerator
-    from chat.__init__ import ChatOrchestrator, MessageType
+    from orchestrator.chat.__init__ import ChatOrchestrator, MessageType
 
 
 class TestBackendChatIntegration:
