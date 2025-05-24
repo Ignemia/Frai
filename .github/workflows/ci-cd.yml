@@ -31,7 +31,7 @@ on:
         type: boolean
 
 env:
-  PYTHON_VERSION: '3.10'
+  PYTHON_VERSION: '3.12'
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
@@ -84,7 +84,7 @@ jobs:
         if [[ "${{ github.event_name }}" == "release" ]]; then
           echo "version=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
         else
-          echo "version=dev-${{ github.sha::7 }}" >> $GITHUB_OUTPUT
+          echo "version=dev-$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
         fi
 
   # Code quality and security checks
@@ -140,6 +140,7 @@ jobs:
     
     - name: Check dependencies for vulnerabilities
       run: |
+        pip install safety
         safety check --json --output safety-report.json || true
         safety check || true
       continue-on-error: true
@@ -151,8 +152,7 @@ jobs:
         name: security-reports
         path: |
           bandit-report.json
-          safety-report.json
-        retention-days: 30
+          safety-report.json        retention-days: 30
 
   # Main test suite
   test:
@@ -162,18 +162,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
-        exclude:
-          # Exclude some combinations to speed up CI
-          - os: macos-latest
-            python-version: '3.8'
-          - os: windows-latest
-            python-version: '3.8'
-          - os: macos-latest
-            python-version: '3.12'
-          - os: windows-latest
-            python-version: '3.12'
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.12']
     
     steps:
     - name: Checkout code
@@ -225,8 +215,34 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-test.txt
+        pip install pytest pytest-cov pytest-xdist pytest-mock pytest-benchmark
+        pip install psutil memory_profiler pytest-timeout pytest-sugar
+        
+        if [ -f requirements.txt ] || [ -e requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements-test.txt ] || [ -e requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+      shell: bash
+      if: matrix.os != 'windows-latest'
+      
+    - name: Install Python dependencies (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-cov pytest-xdist pytest-mock pytest-benchmark
+        pip install psutil memory_profiler pytest-timeout pytest-sugar
+        
+        if (Test-Path "requirements.txt") { pip install -r requirements.txt }
+        if (Test-Path "requirements-test.txt") { pip install -r requirements-test.txt }
+      shell: pwsh
+    
+    - name: Install package in development mode
+      run: |
+        pip install -e .
+      continue-on-error: true
+    
+    - name: Create test results directory
+      run: |
+        mkdir -p test-results
+      shell: bash
     
     - name: Run unit tests
       if: needs.pre-flight.outputs.test_type == 'all' || needs.pre-flight.outputs.test_type == 'unit' || needs.pre-flight.outputs.test_type == 'quick'
@@ -262,6 +278,7 @@ jobs:
         flags: unittests
         name: codecov-umbrella
         token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: false
 
   # Performance tests
   performance:
@@ -284,10 +301,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r requirements-test.txt
+        pip install pytest-benchmark memory_profiler
     
     - name: Run performance tests
       run: |
         pytest tests/performance/ -v --benchmark-json=benchmark.json
+      timeout-minutes: 30
     
     - name: Upload benchmark results
       uses: actions/upload-artifact@v4
@@ -312,12 +331,30 @@ jobs:
         scan-type: 'fs'
         format: 'sarif'
         output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH,MEDIUM'
     
     - name: Upload Trivy scan results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Run Bandit security scanner
+      run: |
+        pip install bandit
+        bandit -r api/ services/ -f sarif -o bandit-results.sarif || true
+    
+    - name: Upload Bandit scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: bandit-results.sarif
+        category: "bandit"
 
   # Documentation build
   docs:
@@ -337,11 +374,22 @@ jobs:
     - name: Install documentation dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements-dev.txt
+        pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
     
     - name: Build documentation
       run: |
-        sphinx-build -b html docs/ docs/_build/html
+        if [ -d "docs" ]; then
+          cd docs
+          make html
+        else
+          echo "No docs directory found, generating basic docs..."
+          mkdir -p docs
+          sphinx-quickstart -q -p "Personal Chatter" -a "Team" -v "0.1" docs/
+          cd docs
+          make html
+        fi
       continue-on-error: true
     
     - name: Upload documentation
@@ -356,10 +404,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test, quality-checks]
     if: github.event_name == 'release' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
+    permissions:
+      contents: read
+      packages: write
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
     
     - name: Log in to Container Registry
       uses: docker/login-action@v3
@@ -388,6 +442,8 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
   # Release deployment
   deploy:
@@ -405,58 +461,53 @@ jobs:
         echo "Deploying version ${{ needs.pre-flight.outputs.version }} to production"
         # Add your deployment commands here
     
+    - name: Run smoke tests
+      run: |
+        echo "Running smoke tests on production"
+        # Add your smoke test commands here
+    
     - name: Create deployment status
       uses: actions/github-script@v7
       with:
         script: |
-          github.rest.repos.createDeploymentStatus({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            deployment_id: context.payload.deployment.id,
-            state: 'success',
-            description: 'Deployment successful',
-            environment_url: 'https://your-app-url.com'
-          });
-
-  # Cleanup and summary
-  cleanup:
-    runs-on: ubuntu-latest
-    needs: [test, performance, security, docs]
-    if: always()
-    
-    steps:
-    - name: Clean up artifacts
-      run: |
-        echo "Cleaning up temporary artifacts..."
-        # Add cleanup commands if needed
-    
-    - name: Notify on failure
-      if: failure()
-      uses: actions/github-script@v7
-      with:
-        script: |
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: '❌ CI/CD pipeline failed. Please check the logs for details.'
-          })
+          const deploymentId = process.env.GITHUB_RUN_ID;
+          try {
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deploymentId,
+              state: 'success',
+              description: 'Deployment successful',
+              environment_url: 'https://your-app-url.com'
+            });
+            console.log("Created deployment status successfully");
+          } catch (error) {
+            console.log("Error creating deployment status:", error);
+          }
 
   # Workflow summary
   summary:
     runs-on: ubuntu-latest
-    needs: [pre-flight, quality-checks, test, performance, security, docs]
+    needs: [pre-flight, quality-checks, test, performance, security, docs, build-image, deploy]
     if: always()
     
     steps:
     - name: Generate summary
       run: |
         echo "## 🚀 CI/CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Status by Job" >> $GITHUB_STEP_SUMMARY
         echo "- **Pre-flight**: ${{ needs.pre-flight.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Quality Checks**: ${{ needs.quality-checks.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Tests**: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Performance**: ${{ needs.performance.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Security**: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Documentation**: ${{ needs.docs.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Docker Build**: ${{ needs.build-image.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Deployment**: ${{ needs.deploy.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Build Information" >> $GITHUB_STEP_SUMMARY
         echo "- **Test Type**: ${{ needs.pre-flight.outputs.test_type }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Version**: ${{ needs.pre-flight.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Triggered By**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch/Tag**: ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY

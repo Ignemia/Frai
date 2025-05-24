@@ -10,8 +10,8 @@ This module provides REST API endpoints for image generation operations includin
 """
 import logging
 import asyncio
-from typing import Dict, List, Optional, Any, 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query, File, UploadFile
+from typing import Dict, List, Optional, Any
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query, File, UploadFile, Form
 from pydantic import BaseModel, Field
 from starlette.websockets import WebSocketState
 import json
@@ -282,15 +282,15 @@ async def generate_image_with_feedback_endpoint(
     summary="Generate an image from an input image and text prompt",
     status_code=200)
 async def image_to_image_endpoint(
-    prompt: str = Field(..., description="Text prompt for image transformation"),
-    strength: float = Field(0.7, description="Transformation strength"),
-    height: int = Field(1024, description="Output image height"),
-    width: int = Field(1024, description="Output image width"),
-    steps: int = Field(35, description="Number of inference steps"),
-    guidance_scale: float = Field(7.0, description="Guidance scale"),
-    negative_prompt: Optional[str] = Field(None, description="Negative prompt"),
-    style: Optional[str] = Field(None, description="Style preset"),
-    enable_progress: bool = Field(True, description="Enable progress tracking"),
+    prompt: str = Form(..., description="Text prompt for image transformation"),
+    strength: float = Form(0.7, description="Transformation strength"),
+    height: int = Form(1024, description="Output image height"),
+    width: int = Form(1024, description="Output image width"),
+    steps: int = Form(35, description="Number of inference steps"),
+    guidance_scale: float = Form(7.0, description="Guidance scale"),
+    negative_prompt: Optional[str] = Form(None, description="Negative prompt"),
+    style: Optional[str] = Form(None, description="Style preset"),
+    enable_progress: bool = Form(True, description="Enable progress tracking"),
     input_image: UploadFile = File(..., description="Input image file"),
     session_token: str = Depends(get_session_token)
 ):

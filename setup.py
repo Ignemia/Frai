@@ -6,7 +6,7 @@ import re
 from setuptools import setup, find_packages
 
 # Read the version from __init__.py
-with open(os.path.join('frai', '__init__.py'), 'r') as f:
+with open(os.path.join('personal_chatter', '__init__.py'), 'r') as f:
     version_file = f.read()
     version_match = re.search(r'__version__ = [\'"]([^\'"]*)[\'"]', version_file, re.MULTILINE)
     
@@ -15,8 +15,8 @@ with open(os.path.join('frai', '__init__.py'), 'r') as f:
     else:
         version = '0.1.0'  # Default if not found
 
-# Read the content of README.md
-with open('README.md', 'r', encoding='utf-8') as fh:
+# Read the content of readme.md
+with open('readme.md', 'r', encoding='utf-8') as fh:
     long_description = fh.read()
 
 # Read requirements.txt
@@ -55,4 +55,24 @@ setup(
         'Topic :: Text Processing :: Linguistic',
         'Topic :: Communications :: Chat',
     ],
+    extras_require={
+        "dev": [
+            "black",
+            "isort",
+            "mypy",
+            "ruff",
+            "pre-commit",
+        ],
+        "test": [
+            "pytest",
+            "pytest-cov",
+            "pytest-mock",
+            "pytest-benchmark",
+        ],
+        "docs": [
+            "sphinx",
+            "sphinx-rtd-theme",
+            "sphinx-autodoc-typehints",
+        ],
+    },
 )

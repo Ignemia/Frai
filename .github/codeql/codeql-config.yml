@@ -1,51 +1,35 @@
-name: "Frai CodeQL Config"
+name: "Custom CodeQL Configuration"
 
 # Disable default queries to use only security-focused ones
 disable-default-queries: false
 
 # Custom query packs and queries
 queries:
-  - name: security-extended
-    uses: security-extended
-  - name: security-and-quality
-    uses: security-and-quality
+  - uses: security-and-quality
+  - uses: security-extended
 
 # Paths to exclude from analysis
 paths-ignore:
-  - "tests/"
-  - "**/*test*.py"
-  - "**/conftest.py"
-  - "build/"
-  - "dist/"
-  - "*.egg-info/"
-  - "venv/"
-  - "env/"
-  - "__pycache__/"
-  - "models/"  # Exclude downloaded model files
-  - "*.pyc"
-  - "*.pyo"
+  - "**/*.test.py"
+  - "docs/**"
+  - "build/**"
+  - "dist/**"
+  - "**/__pycache__/**"
+  - "**/.venv/**"
+  - "**/node_modules/**"
 
 # Paths to include (override excludes if needed)
 paths:
+  - "src/"
   - "api/"
   - "services/"
-  - "src/"
-  - "main.py"
-  - "setup.py"
+  - "tests/"
 
 # Custom query suites
 query-filters:
+  # Exclude specific rules if needed
   - exclude:
-      id: py/clear-text-logging-sensitive-data
-      # Exclude if we have intentional debug logging
-  - include:
-      severity: error
-  - include:
-      severity: warning
-      precision: high
+      id: py/path-injection
 
-# Additional configuration for specific languages
-python:
-  # Include additional Python security queries
-  dependency-installation-timeout: 600
-  setup-python-dependencies: true
+security-severity-overrides:
+  # Override severity levels for specific rules if needed

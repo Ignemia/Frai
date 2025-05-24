@@ -208,3 +208,10 @@ def upgrade_database_schema():
         
     logger.info("Database schema check/creation completed.")
     return True
+
+def init_database():
+    """
+    Initialize the database by creating all tables if they don't exist.
+    This is the function expected by main.py.
+    """
+    return initiate_tables()
