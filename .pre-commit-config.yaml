@@ -16,10 +16,7 @@ repos:
         exclude: ^.*\.(md|rst)$
       - id: check-yaml
         args: [--allow-multiple-documents]
-      - id: check-toml
       - id: check-json
-      - id: pretty-format-json
-        args: [--autofix, --no-sort-keys]
       - id: check-added-large-files
         args: [--maxkb=1000]
       - id: check-merge-conflict
