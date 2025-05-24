@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "frai"
-dynamic = ["version"]
+version = "0.1.0"  # Use static version instead of dynamic
 description = "AI-powered chat and image generation system"
 readme = "readme.md"
 license = {text = "MIT"}
@@ -49,6 +49,7 @@ dependencies = [
     "watchfiles",
     "websockets",
     "xformers"
+    # torch, torchvision, torchaudio are installed automatically by setup.py
 ]
 
 [project.optional-dependencies]
@@ -67,18 +68,17 @@ test = [
 ]
 
 [project.scripts]
-personal-chatter = "main:main"
-pc-chat = "main:main"
-pc-api = "api.api:start_backend_api_cli"
+frai = "main:main"
+frai-chat = "main:main"
+frai-api = "api.api:start_backend_api_cli"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/personal-chatter"
-Repository = "https://github.com/yourusername/personal-chatter"
-
-[tool.setuptools.dynamic]
-version = {attr = "personal_chatter.__version__"}
+Homepage = "https://github.com/Ignemia/Frai"
+Repository = "https://github.com/Ignemia/Frai"
 
 [tool.setuptools.packages.find]
+where = ["."]  # Look in the current directory
+include = ["frai*"]
 exclude = ["tests*", "docs*", "examples*"]
 
 [tool.black]

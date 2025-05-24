@@ -50,3 +50,7 @@ env/
 # OS specific files
 .DS_Store
 Thumbs.db
+
+# self-build
+frai/
+frai/**/*

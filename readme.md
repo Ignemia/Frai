@@ -120,6 +120,40 @@ pip install -r requirements-dev.txt
 python main.py
 ```
 
+### Installation
+
+#### Automated Installation (Recommended)
+
+The automated installation script will detect if you have CUDA or ROCm available and install the appropriate PyTorch packages:
+
+```bash
+# Clone the repository
+git clone https://github.com/Ignemia/Frai.git
+cd Frai
+
+# Create and activate virtual environment
+python -m venv .venv
+# On Windows:
+.venv\Scripts\activate
+# On Linux/macOS:
+# source .venv/bin/activate
+
+# Run the installation script
+python install.py  # For regular installation
+python install.py --dev  # For development installation with dev dependencies
+```
+
+#### Manual Installation
+
+If you prefer to install manually:
+
+1. Install PyTorch packages appropriate for your system from the [official PyTorch website](https://pytorch.org/get-started/locally/)
+2. Install Frai:
+   ```bash
+   pip install -e .  # Regular installation
+   pip install -e ".[dev,test]"  # Development installation
+   ```
+
 ## 🚦 Quick Start
 
 ```bash
