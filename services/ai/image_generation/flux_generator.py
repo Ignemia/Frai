@@ -106,28 +106,38 @@ def _get_flux_pipeline():
             else:
                 logger.warning("CUDA not available, using CPU (will be slow)")
                 target_device = "cpu"
+              # Load the pipeline with compatibility optimizations (like working prototype)
+            logger.info("Loading Flux.1 pipeline with compatibility settings")
             
-            # Load the pipeline with GPU-prioritized optimizations
-            logger.info("Loading Flux.1 pipeline with GPU-prioritized settings")            # Optimized loading that prioritizes GPU
+            # Load to CPU first to avoid initial GPU memory issues
             _flux_pipeline = FluxPipeline.from_pretrained(
                 MODEL_PATH,
-                torch_dtype=torch.float16 if target_device == "cuda" else torch.float32,  # Use fp16 on GPU for memory efficiency
-                device_map="balanced" if target_device == "cuda" else None,  # Use balanced device mapping for GPU
-                low_cpu_mem_usage=True,  # Always enable this
+                torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+                low_cpu_mem_usage=True,
                 use_safetensors=True,
-                variant=None,  # Don't specify variant, let it use what's available
+                variant=None,
                 local_files_only=True
             )
             
-            # Move to target device
-            if target_device == "cpu":
-                _flux_pipeline = _flux_pipeline.to("cpu")
+            # Apply memory optimizations with sequential CPU offload (like working prototype)
+            logger.info("Enabling sequential CPU offloading for maximum compatibility")
+            if hasattr(_flux_pipeline, "enable_sequential_cpu_offload"):
+                _flux_pipeline.enable_sequential_cpu_offload()
+                logger.info("Sequential CPU offload enabled")
             
-            # Apply GPU-prioritized memory optimizations
-            _flux_pipeline = apply_memory_optimizations_manual(_flux_pipeline)
+            # Apply additional memory optimizations
+            logger.info("Applying compatible memory optimizations") 
+            if hasattr(_flux_pipeline, "enable_attention_slicing"):
+                _flux_pipeline.enable_attention_slicing("max")
+                logger.info("Attention slicing enabled")
             
-            # Apply memory optimizations but avoid model CPU offload since we'll manually manage GPU/CPU moves
-            _flux_pipeline = apply_memory_optimizations_manual(_flux_pipeline)
+            if hasattr(_flux_pipeline, "enable_vae_slicing"):
+                _flux_pipeline.enable_vae_slicing()
+                logger.info("VAE slicing enabled")
+                
+            if hasattr(_flux_pipeline, "enable_vae_tiling"):
+                _flux_pipeline.enable_vae_tiling()
+                logger.info("VAE tiling enabled")
             
             logger.info(f"Flux.1 model loaded in {time.time() - start_time:.2f} seconds")
             update_access_time()
@@ -210,15 +220,14 @@ def generate_image(
         logger.error(f"Memory check failed: {memory_message}")
         logger.info("Consider reducing image size (e.g., 256x256) or inference steps (e.g., 10-15)")
         return None, None
-    
     try:
         # Aggressive memory cleanup before generation
         import gc
         gc.collect()
         clear_gpu_memory()
         
-        # Move pipeline to GPU for inference with better error handling
-        pipeline = move_pipeline_to_gpu(pipeline)
+        # Sequential CPU offload handles device management automatically, so no manual GPU move needed
+        logger.debug("Using sequential CPU offload - device management is automatic")
         
         # Log memory status right before generation
         if torch.cuda.is_available():

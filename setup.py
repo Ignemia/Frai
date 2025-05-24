@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from test_mock_helper import List
 """
 Setup script for Personal Chatter.
 
@@ -9,6 +8,7 @@ along with all its dependencies. It supports different GPU acceleration options
 """
 import os
 import platform
+from typing import List
 import sys
 import subprocess
 from typing import Dict, Optional, Tuple
@@ -345,9 +345,9 @@ def install_acceleration_dependencies():
         print("Hugging Face CLI installation successful")
     except Exception as e:
         print(f"Hugging Face CLI installation failed: {e}")
-    
-    # Install ctransformers with appropriate hardware acceleration
+      # Install ctransformers with appropriate hardware acceleration
     has_nvidia, _, _, _ = detect_gpu()
+    system = platform.system()
     if has_nvidia:
         try:
             print("Installing ctransformers with CUDA support")
@@ -366,6 +366,29 @@ def install_acceleration_dependencies():
             subprocess.check_call("pip install ctransformers", shell=True)
         except:
             print("ctransformers installation failed")
+    
+    # Install triton for enhanced PyTorch performance when possible
+        
+    # Install triton for enhanced PyTorch performance when possible
+    if has_nvidia and system == "Windows":
+        try:
+            print("Installing triton-windows for Windows CUDA support")
+            # Use the Windows-specific triton package
+            subprocess.check_call("pip install triton-windows", shell=True)
+            print("Successfully installed triton-windows")
+        except Exception as e:
+            print(f"Could not install triton-windows: {e}")
+            print("This is optional but may affect performance. Consider installing manually:")
+            print("pip install triton-windows")
+    elif has_nvidia:
+        try:
+            print("Installing triton for CUDA acceleration")
+            subprocess.check_call("pip install triton", shell=True)
+            print("Successfully installed triton")
+        except Exception as e:
+            print(f"Could not install triton: {e}")
+            print("This is optional but may affect performance.")
+    
     
     # Install xformers for enhanced transformer performance when possible
     try:
