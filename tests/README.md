@@ -1,8 +1,6 @@
 # Test Framework Documentation
 
-## Overview
-
-This directory contains a comprehensive test suite for the personal-chatter application's refactored image generation system. The tests are organized into multiple categories to ensure thorough coverage across all levels of the system.
+This directory contains a comprehensive test suite for the Frai application's refactored image generation system. The tests are organized into multiple categories to ensure thorough coverage across all levels of the system.
 
 ## Directory Structure
 

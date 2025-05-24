@@ -1,6 +1,6 @@
 """
 from typing import List
-User memory service for Personal Chatter.
+User memory service for Frai.
 
 This module handles storing and retrieving personal information and general memory
 items provided by users.

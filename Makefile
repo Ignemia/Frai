@@ -1,4 +1,4 @@
-# Personal Chatter Development Makefile
+# Frai Development Makefile
 # Provides convenient commands for development, testing, and deployment
 
 .PHONY: help install install-dev test test-unit test-integration test-performance test-all

@@ -177,7 +177,7 @@ jobs:
           git log --pretty=format:"- %s (%an)" $PREVIOUS_TAG..$CURRENT_TAG >> changelog.md
         else
           echo "## Initial Release" > changelog.md
-          echo "First release of Personal Chatter!" >> changelog.md
+          echo "First release of Frai!" >> changelog.md
         fi
         
         echo "changelog<<EOF" >> $GITHUB_OUTPUT

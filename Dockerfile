@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Personal Chatter
+# Multi-stage Dockerfile for Frai
 # Stage 1: Builder stage for dependencies
 FROM python:3.10-slim as builder
 

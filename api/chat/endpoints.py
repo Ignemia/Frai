@@ -1,6 +1,6 @@
 """
 from typing import List
-Chat API endpoints for Personal Chatter application.
+Chat API endpoints for Frai application.
 
 This module provides REST API endpoints for chat operations including:
 - Creating new chats

@@ -19,7 +19,7 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
-logger = logging.getLogger("personal-chatter")
+logger = logging.getLogger("frai")
 
 logger.info("Starting application...")
 logger.info("Python interpreter initialized")

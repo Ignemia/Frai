@@ -1,5 +1,5 @@
 """
-LangChain integration for the Personal Chatter image generation system.
+LangChain integration for the Frai image generation system.
 
 This module provides LangChain-compatible wrappers for using the Flux.1 image
 generation capabilities within LangChain pipelines, agents, and chains.

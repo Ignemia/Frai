@@ -1,4 +1,4 @@
-# Personal Chatter - Folder Structure Refactoring Plan
+# Frai - Folder Structure Refactoring Plan
 
 ## Current Issues
 1. Services are mixed in a flat structure

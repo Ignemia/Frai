@@ -1,4 +1,4 @@
-# Personal Chatter Test Requirements
+# Frai Test Requirements
 # Additional testing dependencies beyond main requirements.txt
 
 # Core testing framework

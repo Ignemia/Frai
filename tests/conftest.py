@@ -30,7 +30,7 @@ def test_config() -> Dict[str, Any]:
 @pytest.fixture(scope="session")
 def temp_directory() -> Generator[Path, None, None]:
     """Create a temporary directory for test files."""
-    temp_dir = tempfile.mkdtemp(prefix="personal_chatter_test_")
+    temp_dir = tempfile.mkdtemp(prefix="frai_test_")
     try:
         yield Path(temp_dir)
     finally:

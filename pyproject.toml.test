@@ -1,4 +1,4 @@
-# Test configuration for Personal Chatter
+# Test configuration for Frai
 # This file provides configuration for running tests on Windows
 
 [tool.pytest.ini_options]

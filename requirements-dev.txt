@@ -1,4 +1,4 @@
-# Personal Chatter Development Requirements
+# Frai Development Requirements
 # Dependencies needed for development work
 
 # Code formatting and linting

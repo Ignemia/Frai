@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Comprehensive Test Orchestrator for Personal Chatter
+Comprehensive Test Orchestrator for Frai
 ====================================================
 
 This module provides a unified test execution system that runs all tests and demos

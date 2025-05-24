@@ -68,7 +68,7 @@ def run_tests(test_args: list = None):
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Personal Chatter - AI-powered chat and image generation system",
+        description="Frai - AI-powered chat and image generation system",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

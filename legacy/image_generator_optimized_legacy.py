@@ -1,6 +1,6 @@
 """
 from typing import List
-Optimized Image generation service for Personal Chatter.
+Optimized Image generation service for Frai.
 
 This module handles the generation of images using the Flux.1 model
 with optimized memory management and step-by-step progress updates.

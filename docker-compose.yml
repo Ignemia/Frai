@@ -1,4 +1,4 @@
-# Docker Compose for Personal Chatter
+# Docker Compose for Frai
 # Production and development configurations
 version: '3.8'
 

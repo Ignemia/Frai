@@ -1,5 +1,5 @@
 """
-Image generation services for Personal Chatter.
+Image generation services for Frai.
 
 This module provides optimized image generation using Flux.1 model
 with memory management and progress tracking capabilities.

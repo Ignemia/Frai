@@ -77,7 +77,7 @@ for module in modules:
         # Check if mkdocs.yml exists, create basic one if not
         if [ ! -f mkdocs.yml ]; then
           cat > mkdocs.yml << EOF
-        site_name: Personal Chatter Documentation
+        site_name: Frai Documentation
         site_description: AI-powered Personal Assistant with Image Generation
         site_url: https://your-org.github.io/personal-chatter
         repo_url: https://github.com/your-org/personal-chatter

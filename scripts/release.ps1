@@ -1,4 +1,4 @@
-# Personal Chatter Release Script for Windows PowerShell
+# Frai Release Script for Windows PowerShell
 # Automates version bumping, testing, and release preparation
 
 param(

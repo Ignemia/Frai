@@ -1,4 +1,4 @@
-# PowerShell Test Runner for Personal Chatter
+# PowerShell Test Runner for Frai
 # Enhanced version with comprehensive Windows support
 
 param(

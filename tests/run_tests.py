@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test runner script for the personal-chatter application.
+Test runner script for the Frai application.
 
 This script provides convenient commands for running different types of tests
 with appropriate configurations and reporting.

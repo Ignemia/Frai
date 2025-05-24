@@ -10,8 +10,8 @@ from api.image import image_router
 from api.config import config_router
 
 app = FastAPI(
-    title="Personal Chatter API",
-    description="API for Personal Chatter application",
+    title="Frai API",
+    description="API for Frai application",
     version="0.1.0",
 )
 

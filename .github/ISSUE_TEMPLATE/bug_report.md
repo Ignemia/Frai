@@ -26,7 +26,7 @@ If applicable, add screenshots to help explain your problem.
 ## 🖥️ Environment
 - OS: [e.g. Windows 11, macOS 13, Ubuntu 22.04]
 - Python Version: [e.g. 3.10.2]
-- Personal Chatter Version: [e.g. v0.2.0]
+- Frai Version: [e.g. v0.2.0]
 - Browser (if web-related): [e.g. Chrome 120, Firefox 121]
 
 ## 📋 Additional Context

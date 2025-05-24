@@ -1,4 +1,4 @@
-# Grafana datasource configuration for Personal Chatter
+# Grafana datasource configuration for Frai
 apiVersion: 1
 
 datasources:

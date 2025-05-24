@@ -373,7 +373,7 @@ jobs:
         else
           echo "No docs directory found, generating basic docs..."
           mkdir -p docs
-          sphinx-quickstart -q -p "Personal Chatter" -a "Team" -v "1.0" docs/
+          sphinx-quickstart -q -p "Frai" -a "Team" -v "1.0" docs/
           cd docs
           make html
         fi

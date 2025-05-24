@@ -1,6 +1,6 @@
 """
 from typing import List
-Main Image generation service for Personal Chatter.
+Main Image generation service for Frai.
 
 This module serves as the primary interface for image generation,
 delegating to the optimized modular Flux.1 system with integrated

@@ -8,7 +8,7 @@ from services.state import get_current_app_state
 
 logger = logging.getLogger(__name__)
 
-WELCOME_MESSAGE = "Hello! I'm your Personal Chatter companion, ready to chat and help. Simply type your message below to get started, or use /help to see available commands."
+WELCOME_MESSAGE = "Hello! I'm your Frai companion, ready to chat and help. Simply type your message below to get started, or use /help to see available commands."
 
 def start_cli_interface():
     """

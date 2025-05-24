@@ -1,5 +1,5 @@
 """
-Main Image generation service for Personal Chatter.
+Main Image generation service for Frai.
 
 This module serves as the primary interface for image generation,
 providing a clean, unified API that delegates to the modular

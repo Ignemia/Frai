@@ -1,5 +1,5 @@
 @echo off
-REM Enhanced Windows Batch Test Runner for Personal Chatter
+REM Enhanced Windows Batch Test Runner for Frai
 REM Provides easy access to common testing scenarios
 
 setlocal enabledelayedexpansion

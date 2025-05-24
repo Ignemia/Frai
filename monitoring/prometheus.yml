@@ -1,4 +1,4 @@
-# Prometheus configuration for Personal Chatter monitoring
+# Prometheus configuration for Frai monitoring
 global:
   scrape_interval: 15s
   evaluation_interval: 15s

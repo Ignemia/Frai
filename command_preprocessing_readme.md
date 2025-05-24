@@ -1,7 +1,7 @@
 # Command Preprocessing System Implementation
 
 ## Overview
-This document summarizes the implementation of the command preprocessing system for the Personal Chatter application. The system detects user intent for special commands like image generation, online search, memory storage, and more, then acts upon these commands appropriately.
+This document summarizes the implementation of the command preprocessing system for the Frai application. The system detects user intent for special commands like image generation, online search, memory storage, and more, then acts upon these commands appropriately.
 
 ## Implemented Features
 

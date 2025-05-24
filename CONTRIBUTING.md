@@ -1,6 +1,6 @@
-# Contributing to Personal Chatter
+# Contributing to Frai
 
-Thank you for your interest in contributing to Personal Chatter! This is a community-driven project, and we appreciate all help.
+Thank you for your interest in contributing to Frai! This is a community-driven project, and we appreciate all help.
 
 ## 🤝 Ways to Contribute
 
@@ -163,6 +163,6 @@ When opening an issue:
 
 ## 🙏 Thank You!
 
-Your contributions help make Personal Chatter better for everyone. Every contribution matters, no matter how small.
+Your contributions help make Frai better for everyone. Every contribution matters, no matter how small.
 
 Happy coding! 🚀

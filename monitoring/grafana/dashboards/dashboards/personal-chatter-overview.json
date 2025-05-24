@@ -1,8 +1,8 @@
 {
   "dashboard": {
     "id": null,
-    "title": "Personal Chatter - Application Overview",
-    "tags": ["personal-chatter", "ai", "monitoring"],
+    "title": "Frai - Application Overview",
+    "tags": ["frai", "ai", "monitoring"],
     "style": "dark",
     "timezone": "browser",
     "editable": true,

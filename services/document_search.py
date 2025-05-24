@@ -1,6 +1,6 @@
 """
 from typing import List
-Local document search service for Personal Chatter.
+Local document search service for Frai.
 
 This module handles searching through local documents stored by the user.
 It uses a simple vector database to enable semantic search functionality.

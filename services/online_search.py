@@ -1,6 +1,6 @@
 """
 from typing import List
-Online search service for Personal Chatter.
+Online search service for Frai.
 
 This module handles searching for information online using the Brave Search API
 or other search providers.

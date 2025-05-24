@@ -1,6 +1,6 @@
 """
 from typing import List
-Command processing module for Personal Chatter.
+Command processing module for Frai.
 
 This module handles preprocessing of user messages to detect specific command
 intents like image generation, online search, storing user information, etc.

@@ -213,7 +213,7 @@ class TypingImportFixer:
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Fix typing imports across the Personal Chatter codebase"
+        description="Fix typing imports across the Frai codebase"
     )
     parser.add_argument(
         '--dry-run', 

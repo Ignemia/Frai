@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Personal Chatter Release Script
+Frai Release Script
 Automates version bumping, testing, quality checks, and release preparation.
 """
 

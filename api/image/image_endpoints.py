@@ -1,6 +1,6 @@
 """
 from typing import List
-Image Generation API endpoints for Personal Chatter application.
+Image Generation API endpoints for Frai application.
 
 This module provides REST API endpoints for image generation operations including:
 - Basic image generation with style presets

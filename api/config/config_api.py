@@ -1,5 +1,5 @@
 """
-Configuration API for Personal Chatter.
+Configuration API for Frai.
 
 This module provides endpoints for viewing and modifying the application configuration.
 """

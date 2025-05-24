@@ -1,4 +1,4 @@
-name: "Personal Chatter CodeQL Config"
+name: "Frai CodeQL Config"
 
 # Disable default queries to use only security-focused ones
 disable-default-queries: false

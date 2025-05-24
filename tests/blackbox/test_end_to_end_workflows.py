@@ -1,5 +1,5 @@
 """
-End-to-end blackbox tests for the personal-chatter application.
+End-to-end blackbox tests for the Frai application.
 
 These tests treat the entire system as a black box, testing complete
 user workflows from API calls to final outputs without relying on

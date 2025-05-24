@@ -2,7 +2,7 @@
 
 ## 📦 Version Support
 
-We only support the latest release. Please ensure you're using the most recent version of Personal Chatter to receive security updates and support.
+We only support the latest release. Please ensure you're using the most recent version of Frai to receive security updates and support.
 
 ## 🚨 Reporting a Vulnerability
 

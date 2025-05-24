@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Demo script for the optimized personal-chatter image generation system.
+Demo script for the optimized Frai image generation system.
 
 This script demonstrates the complete optimized pipeline:
 - Step-by-step image generation with progress updates

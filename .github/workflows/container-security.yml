@@ -71,7 +71,7 @@ jobs:
 
     - name: Build Docker image for scanning
       run: |
-        docker build -t personal-chatter:scan .
+        docker build -t frai:scan .
 
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
