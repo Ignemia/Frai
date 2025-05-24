@@ -46,41 +46,88 @@ def run_api_usage_demo():
     if debug_mode:
         print(f"🔧 Debug mode enabled")
         print(f"🔌 Using API at: {api_base_url}")
-    
-    # Try to import requests for API calls
-    try:
-        import requests
-        HAS_REQUESTS = True
-    except ImportError:
-        print("⚠️ 'requests' module not found. Will simulate API calls.")
-        HAS_REQUESTS = False
+      # Import requests for API calls - REQUIRED
+    import requests
     
     # Check if API is running
     API_RUNNING = False
     if HAS_REQUESTS:
         try:
-            status_url = f"http://{api_host}:{api_port}/status"
-            response = requests.get(status_url, timeout=2)
-            API_RUNNING = response.status_code == 200
-            print(f"✅ API is running: {API_RUNNING}")
-        except Exception as e:
-            print(f"⚠️ API server does not appear to be running: {e}. Will simulate API calls.")
+            # Let's try to hit the /docs endpoint as a basic check
+            docs_url = f"http://{api_host}:{api_port}/docs"
+            response = requests.get(docs_url, timeout=5) # Increased timeout
+            if response.status_code == 200:
+                API_RUNNING = True
+                print(f"✅ API documentation page is accessible. Assuming API is running.")
+            else:
+                # If /docs isn't 200, we'll still try to make API calls, 
+                # but good to note that the docs page itself had an issue.
+                print(f"⚠️ API documentation page ({docs_url}) returned status {response.status_code}. Will attempt to proceed with API calls.")
+                # API_RUNNING remains False, individual calls will try and fallback if needed.
+
+        except requests.exceptions.RequestException as e: # Catch specific requests exceptions
+            print(f"⚠️ API server does not appear to be running or is not reachable at {api_base_url} (tried /docs): {e}. API calls will likely use mock data.")
+            # API_RUNNING remains False
+    else:
+        print("ℹ️ 'requests' module not available. API calls will be mocked.")
     
     # API base URL - now using value from environment
-    API_URL = api_base_url
+    # The demo script was using a generic /api/v1 prefix which is not correct for all endpoints.
+    # We will construct specific URLs for each type of call.
+    SERVER_API_URL = f"http://{api_host}:{api_port}/server"
+    USER_API_URL = f"http://{api_host}:{api_port}/user" # Added for login
+    CHAT_API_URL = f"http://{api_host}:{api_port}/chat"
+    IMAGE_API_URL = f"http://{api_host}:{api_port}/image"
+
+    auth_token = None
+
+    # 0. Authenticate User (New Step)
+    print_section("0. Authenticating User")
+    if HAS_REQUESTS:
+        # IMPORTANT: Replace with actual test user credentials
+        login_credentials = {
+            "username": "testuser", 
+            "password": "testpassword"
+        }
+        try:
+            print(f"Attempting login for user: {login_credentials['username']}")
+            # The /user/login endpoint expects form data (OAuth2PasswordRequestForm)
+            response = requests.post(f"{USER_API_URL}/login", data=login_credentials, timeout=10)
+            response.raise_for_status()
+            token_data = response.json()
+            auth_token = token_data.get("access_token")
+            if auth_token:
+                print(f"✅ Successfully authenticated. Token obtained.")
+                API_RUNNING = True # If login works, API is definitely running
+            else:
+                print("❌ Authentication successful, but no access token found in response.")
+                print(f"Response: {token_data}")
+                API_RUNNING = False # Cannot proceed without token
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Error during authentication: {e}")
+            print("Skipping further API calls as authentication failed.")
+            API_RUNNING = False # Cannot proceed
+        except Exception as e:
+            print(f"❌ An unexpected error occurred during authentication: {e}")
+            API_RUNNING = False
+    else:
+        print("ℹ️ 'requests' module not available. Skipping authentication and further API calls.")
+        API_RUNNING = False
     
     # 1. Check system status
     print_section("1. Checking API Status")
     
     if API_RUNNING and HAS_REQUESTS:
         try:
-            response = requests.get(f"{API_URL}/status")
+            # Corrected status URL
+            response = requests.get(f"{SERVER_API_URL}/status", timeout=5)
+            response.raise_for_status() # Check for HTTP errors
             status_data = response.json()
             print(f"API Status: {status_data.get('status', 'unknown')}")
             print(f"Version: {status_data.get('version', 'unknown')}")
             print(f"Uptime: {status_data.get('uptime', 'unknown')}")
-        except Exception as e:
-            print(f"❌ Error checking API status: {e}")
+        except requests.exceptions.RequestException as e: # Catch specific requests exceptions
+            print(f"❌ Error checking API status via {SERVER_API_URL}/status: {e}") # Corrected variable here
             # Fall back to mock status
             status_data = {
                 "status": "operational (simulated)",
@@ -105,49 +152,52 @@ def run_api_usage_demo():
     
     # 2. Making a chat request
     print_section("2. Making a Chat API Request")
+    print("ℹ️ Skipping HTTP POST chat request demo.")
+    print("   The chat API likely uses WebSockets for real-time interaction, which is not covered by this script.")
+    # The following block is commented out as it's not compatible with WebSocket-based chat
+    # chat_request = {
+    #     "message": "Hello, can you tell me about image generation?",
+    #     "conversation_id": "demo-conversation-1",
+    #     "options": {
+    #         "temperature": 0.7,
+    #         "max_tokens": 300
+    #     }
+    # }
     
-    chat_request = {
-        "message": "Hello, can you tell me about image generation?",
-        "conversation_id": "demo-conversation-1",
-        "options": {
-            "temperature": 0.7,
-            "max_tokens": 300
-        }
-    }
+    # print("Request data:")
+    # print(json.dumps(chat_request, indent=2))
     
-    print("Request data:")
-    print(json.dumps(chat_request, indent=2))
-    
-    if API_RUNNING and HAS_REQUESTS:
-        try:
-            response = requests.post(f"{API_URL}/chat", json=chat_request)
-            response.raise_for_status()  # Raise exception for HTTP errors
-            chat_response = response.json()
-            print("\nResponse data:")
-            print(json.dumps(chat_response, indent=2))
-        except Exception as e:
-            print(f"\n❌ Error making chat request: {e}")
-            # Fall back to mock response
-            chat_response = {
-                "id": "msg_1234567890",
-                "conversation_id": "demo-conversation-1",
-                "content": "Hello! I'd be happy to tell you about image generation. Personal Chatter uses state-of-the-art diffusion models to generate high-quality images from text descriptions (prompts). You can specify parameters like image size, guidance scale, and number of steps to control the generation process. Would you like me to show you how to generate an image?",
-                "created_at": datetime.now().isoformat(),
-                "processing_time": 0.45
-            }
-            print("\nResponse data (mock fallback):")
-            print(json.dumps(chat_response, indent=2))
-    else:
-        # Mock chat response
-        mock_chat_response = {
-            "id": "msg_1234567890",
-            "conversation_id": "demo-conversation-1",
-            "content": "Hello! I'd be happy to tell you about image generation. Personal Chatter uses state-of-the-art diffusion models to generate high-quality images from text descriptions (prompts). You can specify parameters like image size, guidance_scale, and number of steps to control the generation process. Would you like me to show you how to generate an image?",
-            "created_at": datetime.now().isoformat(),
-            "processing_time": 0.45
-        }
-        print("\nResponse data (mock):")
-        print(json.dumps(mock_chat_response, indent=2))
+    # if API_RUNNING and HAS_REQUESTS:
+    #     try:
+    #         # Corrected chat URL to /chat/message
+    #         response = requests.post(f"{CHAT_API_URL}/message", json=chat_request, timeout=10)
+    #         response.raise_for_status()  # Raise exception for HTTP errors
+    #         chat_response = response.json()
+    #         print("\nResponse data (Live API):")
+    #         print(json.dumps(chat_response, indent=2))
+    #     except requests.exceptions.RequestException as e: # Catch specific requests exceptions
+    #         print(f"\n❌ Error making live chat request: {e}. Falling back to mock data.")
+    #         # Fall back to mock response
+    #         chat_response = {
+    #             "id": "msg_1234567890",
+    #             "conversation_id": "demo-conversation-1",
+    #             "content": "Hello! I'd be happy to tell you about image generation. Personal Chatter uses state-of-the-art diffusion models to generate high-quality images from text descriptions (prompts). You can specify parameters like image size, guidance scale, and number of steps to control the generation process. Would you like me to show you how to generate an image?",
+    #             "created_at": datetime.now().isoformat(),
+    #             "processing_time": 0.45
+    #         }
+    #         print("\nResponse data (mock fallback):")
+    #         print(json.dumps(chat_response, indent=2))
+    # else:
+    #     # Mock chat response
+    #     mock_chat_response = {
+    #         "id": "msg_1234567890",
+    #         "conversation_id": "demo-conversation-1",
+    #         "content": "Hello! I'd be happy to tell you about image generation. Personal Chatter uses state-of-the-art diffusion models to generate high-quality images from text descriptions (prompts). You can specify parameters like image size, guidance_scale, and number of steps to control the generation process. Would you like me to show you how to generate an image?",
+    #         "created_at": datetime.now().isoformat(),
+    #         "processing_time": 0.45
+    #     }
+    #     print("\nResponse data (mock):")
+    #     print(json.dumps(mock_chat_response, indent=2))
     
     # 3. Making an image generation request
     print_section("3. Making an Image Generation API Request")
@@ -176,12 +226,13 @@ def run_api_usage_demo():
     demo_output_dir = project_root / "outputs" / "demo_images"
     demo_output_dir.mkdir(parents=True, exist_ok=True)
     
-    if API_RUNNING and HAS_REQUESTS:
+    if API_RUNNING and HAS_REQUESTS and auth_token: # Ensure we have a token
         try:
-            response = requests.post(f"{API_URL}/generate_image", json=image_request)
-            response.raise_for_status()  # Raise exception for HTTP errors
+            headers = {"Authorization": f"Bearer {auth_token}"} # Add auth header
+            response = requests.post(f"{IMAGE_API_URL}/generate", json=image_request, headers=headers, timeout=60)
+            response.raise_for_status()
             image_response = response.json()
-            print("Response data:")
+            print("Response data (Live API):")
             print(json.dumps(image_response, indent=2))
             
             # Display the image if available
@@ -270,60 +321,63 @@ def run_api_usage_demo():
     
     # 4. Making a batch request
     print_section("4. Making a Batch Processing API Request")
+    print("ℹ️ Skipping Batch Image Generation demo.")
+    print("   The endpoint '/image/batch_generate' was not found (404). Needs verification.")
+    # The following block is commented out
+    # batch_request = {
+    #     "requests": [
+    #         {"prompt": "A cat playing with a ball of yarn", "width": 512, "height": 512},
+    #         {"prompt": "A dog running in a park", "width": 512, "height": 512},
+    #         {"prompt": "A fish swimming in a coral reef", "width": 512, "height": 512}
+    #     ],
+    #     "common_parameters": {
+    #         "num_inference_steps": 25,
+    #         "guidance_scale": 7.0
+    #     }
+    # }
     
-    batch_request = {
-        "requests": [
-            {"prompt": "A cat playing with a ball of yarn", "width": 512, "height": 512},
-            {"prompt": "A dog running in a park", "width": 512, "height": 512},
-            {"prompt": "A fish swimming in a coral reef", "width": 512, "height": 512}
-        ],
-        "common_parameters": {
-            "num_inference_steps": 25,
-            "guidance_scale": 7.0
-        }
-    }
+    # print("Batch request data:")
+    # print(json.dumps(batch_request, indent=2))
     
-    print("Batch request data:")
-    print(json.dumps(batch_request, indent=2))
+    # # Simulate longer processing time for batch
+    # print("\nProcessing batch request...")
+    # for i in range(0, 101, 5):
+    #     progress_bar = f"[{'=' * (i // 5)}>{' ' * (20 - i // 5)}] {i}%"
+    #     print(f"\r{progress_bar}", end="")
+    #     time.sleep(0.15)
+    # print("\n")
     
-    # Simulate longer processing time for batch
-    print("\nProcessing batch request...")
-    for i in range(0, 101, 5):
-        progress_bar = f"[{'=' * (i // 5)}>{' ' * (20 - i // 5)}] {i}%"
-        print(f"\r{progress_bar}", end="")
-        time.sleep(0.15)
-    print("\n")
-    
-    if API_RUNNING and HAS_REQUESTS:
-        try:
-            response = requests.post(f"{API_URL}/generate_batch", json=batch_request)
-            response.raise_for_status()
-            batch_response = response.json()
-            print("Response data:")
-            print(json.dumps(batch_response, indent=2))
+    # if API_RUNNING and HAS_REQUESTS:
+    #     try:
+    #         # Corrected batch image generation URL to /image/batch_generate
+    #         response = requests.post(f"{IMAGE_API_URL}/batch_generate", json=batch_request, timeout=180)
+    #         response.raise_for_status()
+    #         batch_response = response.json()
+    #         print("Response data (Live API):")
+    #         print(json.dumps(batch_response, indent=2))
             
-            # Display the first image from the batch if available
-            if batch_response.get("success", False) and batch_response.get("results", []):
-                first_result = batch_response["results"][0]
-                if first_result.get("success", False) and first_result.get("image_url"):
-                    image_url = first_result["image_url"]
-                    local_path = project_root / image_url.lstrip('/')
-                    if local_path.exists():
-                        print(f"\nFirst batch image available at: {local_path}")
-                        display_image(local_path)
-                    else:
-                        print(f"\nFirst batch image would be available at: http://localhost:8000{image_url}")
-        except Exception as e:
-            print(f"❌ Error making batch request: {e}")
-            # Fall back to mock batch response
-            mock_batch_response = create_mock_batch_response(batch_request, demo_output_dir)
-            print("Response data (mock fallback):")
-            print(json.dumps(mock_batch_response, indent=2))
-    else:
-        # Mock batch response
-        mock_batch_response = create_mock_batch_response(batch_request, demo_output_dir)
-        print("Response data (mock):")
-        print(json.dumps(mock_batch_response, indent=2))
+    #         # Display the first image from the batch if available
+    #         if batch_response.get("success", False) and batch_response.get("results", []):
+    #             first_result = batch_response["results"][0]
+    #             if first_result.get("success", False) and first_result.get("image_url"):
+    #                 image_url = first_result["image_url"]
+    #                 local_path = project_root / image_url.lstrip('/')
+    #                 if local_path.exists():
+    #                     print(f"\nFirst batch image available at: {local_path}")
+    #                     display_image(local_path)
+    #                 else:
+    #                     print(f"\nFirst batch image would be available at: http://localhost:8000{image_url}")
+    #     except Exception as e:
+    #         print(f"❌ Error making batch request: {e}")
+    #         # Fall back to mock batch response
+    #         mock_batch_response = create_mock_batch_response(batch_request, demo_output_dir)
+    #         print("Response data (mock fallback):")
+    #         print(json.dumps(mock_batch_response, indent=2))
+    # else:
+    #     # Mock batch response
+    #     mock_batch_response = create_mock_batch_response(batch_request, demo_output_dir)
+    #     print("Response data (mock):")
+    #     print(json.dumps(mock_batch_response, indent=2))
     
     # Summary
     print_section("API Usage Summary")

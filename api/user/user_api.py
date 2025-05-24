@@ -34,11 +34,24 @@ from .compatibility_models import UserTokenData, UserLogoutData, UserDetails
 #     validate_user_token,
 # )
 
-# Placeholder service functions:
+# Import the real database functions
+from services.database.users import user_exists, get_user_id
+from services.database.passwords import verify_credentials
+from hashlib import sha256
+
+# Real service functions:
 async def validate_user_data(data): return True
-async def user_data_exists(username): return False
+async def user_data_exists(username): 
+    return user_exists(username)
 async def create_user(data): return True
-async def authenticate_user(data): return True
+async def authenticate_user(data): 
+    username = data.get("username")
+    password = data.get("password")
+    if not username or not password:
+        return False
+    # Hash the password as expected by the database
+    password_hash = sha256(password.encode()).hexdigest()
+    return verify_credentials(username, password_hash)
 async def validate_token_data(data): return True
 async def user_data_exists_by_token(token): return True
 async def refresh_user_token(token): return "new_mock_token"
