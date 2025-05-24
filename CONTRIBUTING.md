@@ -1,87 +1,127 @@
 # Contributing to Personal Chatter
 
-Thank you for your interest in contributing to Personal Chatter! This document provides guidelines and information for contributors.
-
-## 🎯 Overview
-
-Personal Chatter is an open-source project focused on privacy-first AI interaction. We welcome contributions of all kinds, from bug reports to feature implementations.
+Thank you for your interest in contributing to Personal Chatter! This is a community-driven project, and we appreciate all help.
 
 ## 🤝 Ways to Contribute
 
-### 🐛 Bug Reports
-- Use the [issue template](.github/ISSUE_TEMPLATE/bug_report.md)
-- Include detailed reproduction steps
-- Provide system information and logs
-- Check existing issues before creating new ones
-
-### ✨ Feature Requests
-- Use the [feature request template](.github/ISSUE_TEMPLATE/feature_request.md)
-- Explain the use case and expected behavior
-- Consider implementation complexity and maintenance overhead
-
-### 📝 Documentation
-- Improve README and documentation
-- Add code comments and docstrings
-- Create tutorials and examples
-- Fix typos and improve clarity
-
-### 💻 Code Contributions
-- Fix bugs and implement features
-- Improve performance and efficiency
-- Add tests and improve coverage
-- Refactor and clean up code
+- **Report bugs** by opening an issue
+- **Suggest features** that would make the app better
+- **Improve documentation** to help others understand the project
+- **Fix bugs** or implement new features through pull requests
+- **Help others** in discussions and issue threads
 
 ## 🚀 Getting Started
 
-### 1. Fork and Clone
-```bash
-# Fork the repository on GitHub
-git clone https://github.com/YOUR_USERNAME/personal-chatter.git
-cd personal-chatter
+### Setting Up the Development Environment
+
+1. **Hugging Face Authentication**:
+   ```bash
+   # Install huggingface_hub
+   pip install huggingface_hub
+   
+   # Login to Hugging Face
+   huggingface-cli login
+   ```
+   This will prompt you to enter your Hugging Face token, which you can find in your [Hugging Face account settings](https://huggingface.co/settings/tokens).
+
+2. **Clone the repository with submodules**:
+   ```bash
+   # Clone with submodules
+   git clone --recursive https://github.com/your-org/personal-chatter.git
+   cd personal-chatter
+   ```
+   
+   If you've already cloned the repository without the `--recursive` flag:
+   ```bash
+   git submodule init
+   git submodule update
+   ```
+
+3. **Set up your environment**:
+    ```bash
+    # Create a virtual environment
+    python -m venv venv
+    
+    # Activate virtual environment
+    # On Windows:
+    venv\Scripts\activate
+    # On Linux:
+    # source venv/bin/activate
+
+    # Install setuptools first
+    pip install --upgrade pip setuptools wheel
+
+    # Install the package in development mode
+    python setup.py develop
+
+    # Install development dependencies
+    pip install -r requirements-dev.txt
+    ```
+
+## 📊 Git Workflow
+
+We follow a structured branch workflow:
+
+- **Master**: Production-ready code and releases
+- **Testing**: Beta versions and prerelease code
+- **dev**: Active development code (submit PRs to this branch)
+- **Release**: Stores the latest major release
+- **issue-[issueid]-name-of-issue**: For specific issue resolution
+
+### Creating a Pull Request
+
+1. **Create a branch from dev**:
+    ```bash
+    git checkout dev
+    git checkout -b issue-123-fix-login-bug
+    # or for features
+    git checkout -b feature/user-profiles
+    ```
+
+2. **Make your changes** and commit them with clear messages
+
+3. **Push your branch**:
+    ```bash
+    git push origin issue-123-fix-login-bug
+    ```
+
+4. **Open a pull request** to the `dev` branch through the GitHub interface
+
+## 🔢 Version Naming Convention
+
+We use standard semantic versioning (SemVer):
+
+```
+MAJOR.MINOR.PATCH
 ```
 
-### 2. Set Up Development Environment
-```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+- **MAJOR**: Incremented when making incompatible API changes
+- **MINOR**: Incremented when adding functionality in a backward compatible manner
+- **PATCH**: Incremented when making backward compatible bug fixes
 
-# Install development dependencies
-pip install -r requirements-dev.txt
-pip install -r requirements-test.txt
+Example: `2.3.5` (Major version 2, minor version 3, patch 5)
 
-# Install pre-commit hooks
-pre-commit install
-```
-
-### 3. Create Feature Branch
-```bash
-git checkout -b feature/your-feature-name
-# or
-git checkout -b fix/your-bug-fix
-```
+For pre-releases, we may use suffixes like `-alpha.1`, `-beta.2`, or `-rc.1`.
 
 ## 📋 Development Guidelines
 
 ### Code Style
-We use automated code formatting and linting:
 
+We use:
+- **Black** for code formatting
+- **isort** for import sorting
+- **Ruff** for linting
+
+You can run these tools with:
 ```bash
-# Format code
 black .
 isort .
-
-# Lint code
 ruff check .
-mypy api/ services/
-
-# Run all pre-commit hooks
-pre-commit run --all-files
 ```
 
 ### Testing
-All contributions must include appropriate tests:
 
+Please add tests for new functionality:
 ```bash
 # Run all tests
 pytest
@@ -89,201 +129,40 @@ pytest
 # Run specific test categories
 pytest tests/unit/
 pytest tests/integration/
-
-# Run with coverage
-pytest --cov=api --cov=services --cov-report=html
 ```
-
-### Test Categories
-- **Unit Tests**: Test individual functions and classes
-- **Integration Tests**: Test component interactions
-- **Performance Tests**: Benchmark critical operations
-- **Security Tests**: Test for vulnerabilities
 
 ### Documentation
-- Add docstrings to all public functions and classes
-- Use Google-style docstrings
-- Update README.md for new features
-- Add type hints to all function parameters and return values
 
-## 🏗 Architecture Guidelines
+- Add docstrings to new functions and classes
+- Update README.md if needed
 
-### Code Organization
+## 🏗 Project Structure
+
 ```
 personal-chatter/
-├── api/              # FastAPI endpoints and models
-├── services/         # Business logic and core services
-├── tests/           # Test suite
-├── docs/            # Documentation
-└── legacy/          # Legacy code (being refactored)
+├── api/              # FastAPI endpoints
+├── services/         # Core functionality
+└── tests/            # Test suite
 ```
 
-### Design Principles
-1. **Modularity**: Keep components loosely coupled
-2. **Testability**: Write testable, dependency-injectable code
-3. **Privacy**: Never log or transmit personal data
-4. **Security**: Follow secure coding practices
-5. **Performance**: Optimize for resource-constrained environments
+## 🔍 Pull Request Review Process
 
-### API Design
-- Follow RESTful conventions
-- Use consistent naming patterns
-- Include comprehensive error handling
-- Document all endpoints with OpenAPI
+1. A maintainer will review your PR
+2. They may ask for changes or clarification
+3. Once approved, your PR will be merged
 
-## 🔧 Pull Request Process
+## 📝 Issue Guidelines
 
-### 1. Before Submitting
-- [ ] Code follows style guidelines
-- [ ] Tests pass locally
-- [ ] Documentation is updated
-- [ ] Commit messages are descriptive
-- [ ] No merge conflicts with main branch
+When opening an issue:
 
-### 2. Pull Request Checklist
-- [ ] Clear title and description
-- [ ] Links to related issues
-- [ ] Screenshots for UI changes
-- [ ] Breaking changes documented
-- [ ] Performance impact assessed
+1. **Use a clear title** that summarizes the issue
+2. **Provide detailed information**:
+   - For bugs: Steps to reproduce, expected vs. actual behavior
+   - For features: What you want, why it's useful, how it should work
+3. **Include your environment**: OS, Python version, etc.
 
-### 3. Review Process
-1. Automated checks must pass
-2. Code review by maintainers
-3. Testing on multiple platforms
-4. Documentation review
-5. Final approval and merge
+## 🙏 Thank You!
 
-## 🧪 Testing Standards
-
-### Minimum Requirements
-- **Unit Test Coverage**: 80% minimum
-- **Integration Tests**: For all major workflows
-- **Performance Tests**: For critical operations
-- **Security Tests**: For authentication and data handling
-
-### Test Structure
-```python
-def test_function_name():
-    """Test description following Given/When/Then pattern."""
-    # Given: Setup test conditions
-    
-    # When: Execute the operation
-    
-    # Then: Assert expected results
-    assert expected == actual
-```
-
-## 🔒 Security Guidelines
-
-### Code Security
-- Never commit secrets or credentials
-- Use environment variables for configuration
-- Validate all inputs
-- Follow OWASP guidelines
-- Run security scans regularly
-
-### Data Privacy
-- Never log personal information
-- Implement data minimization
-- Use encryption for sensitive data
-- Provide clear data handling documentation
-
-## 📊 Performance Guidelines
-
-### Optimization Priorities
-1. **Memory Usage**: Efficient model loading and caching
-2. **Response Time**: Fast API responses
-3. **Startup Time**: Quick application initialization
-4. **Resource Usage**: Minimal CPU and GPU usage
-
-### Benchmarking
-- Include performance tests for new features
-- Profile memory usage for ML operations
-- Measure API response times
-- Monitor resource consumption
-
-## 🚀 Release Process
-
-### Version Numbering
-We follow [Semantic Versioning](https://semver.org/):
-- **MAJOR**: Breaking changes
-- **MINOR**: New features (backward compatible)
-- **PATCH**: Bug fixes (backward compatible)
-
-### Release Checklist
-- [ ] All tests pass
-- [ ] Documentation updated
-- [ ] CHANGELOG.md updated
-- [ ] Version number bumped
-- [ ] Release notes prepared
-- [ ] Docker images built and tested
-
-## 🏷 Commit Message Format
-
-We use [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-type(scope): description
-
-[optional body]
-
-[optional footer]
-```
-
-### Types
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes
-- `refactor`: Code refactoring
-- `test`: Test additions or modifications
-- `chore`: Maintenance tasks
-
-### Examples
-```
-feat(api): add image generation endpoint
-fix(auth): resolve JWT token validation issue
-docs(readme): update installation instructions
-test(unit): add tests for user service
-```
-
-## 🏆 Recognition
-
-Contributors are recognized in:
-- GitHub contributors list
-- Release notes
-- Project documentation
-- Annual contributor recognition
-
-## 📞 Getting Help
-
-### Communication Channels
-- **GitHub Issues**: Bug reports and feature requests
-- **GitHub Discussions**: General questions and ideas
-- **Email**: personal-chatter@example.com
-
-### Maintainer Response Times
-- **Issues**: Within 48 hours
-- **Pull Requests**: Within 72 hours
-- **Security Issues**: Within 24 hours
-
-## 📜 Code of Conduct
-
-### Our Pledge
-We are committed to providing a welcoming and inclusive environment for all contributors.
-
-### Standards
-- Be respectful and inclusive
-- Accept constructive criticism gracefully
-- Focus on what's best for the community
-- Show empathy towards other contributors
-
-### Enforcement
-Violations of the code of conduct can be reported to the maintainers. All reports will be investigated promptly and fairly.
-
-## 🎉 Thank You!
-
-Your contributions help make Personal Chatter better for everyone. Whether you're fixing a typo, implementing a feature, or improving documentation, every contribution matters.
+Your contributions help make Personal Chatter better for everyone. Every contribution matters, no matter how small.
 
 Happy coding! 🚀
