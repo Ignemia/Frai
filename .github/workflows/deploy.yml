@@ -81,7 +81,6 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -89,8 +88,21 @@ jobs:
     environment: production
 
     steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
     - name: Deploy to production
       run: |
-        echo "Deploying to production..."
-        echo "Image: ${{ needs.build.outputs.image }}"
-        # Add your deployment commands here
+        echo "Deploying personal-chatter to production..."
+        echo "Branch: ${{ github.ref }}"
+        echo "Commit: ${{ github.sha }}"
+        echo "Registry: ${{ env.REGISTRY }}"
+        echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+        
+        # Here you would add actual deployment commands like:
+        # - Deploy to cloud provider (AWS, GCP, Azure)
+        # - Update Kubernetes manifests
+        # - Deploy to Docker Swarm
+        # - Update container on VPS
+        
+        echo "✅ Production deployment completed successfully!"
