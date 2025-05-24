@@ -59,7 +59,6 @@ jobs:
           # For manual dispatch, we'll create the version
           echo "version=manual-$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
         fi
-
   # Build and publish Python package
   build-python:
     needs: validate
@@ -99,7 +98,7 @@ jobs:
       if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
       env:
         TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       run: twine upload dist/*
 
   # Build and publish Docker image
@@ -179,12 +178,12 @@ jobs:
           echo "## Initial Release" > changelog.md
           echo "First release of Frai!" >> changelog.md
         fi
-        
-        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
         cat changelog.md >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
 
     - name: Create Release
+      id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -232,25 +231,4 @@ jobs:
         # For example:
         # - Health checks
         # - Smoke tests
-        # - Monitor logs
-
-  # Notify stakeholders
-  notify:
-    needs: [create-release, deploy]
-    runs-on: ubuntu-latest
-    if: always() && (needs.create-release.result == 'success' || needs.deploy.result == 'success')
-
-    steps:
-    - name: Notify Discord
-      if: secrets.DISCORD_WEBHOOK_URL
-      run: |
-        curl -H "Content-Type: application/json" \
-             -d "{\"content\":\"🚀 Personal Chatter ${{ needs.validate.outputs.version }} has been released!\"}" \
-             ${{ secrets.DISCORD_WEBHOOK_URL }}
-
-    - name: Notify Slack
-      if: secrets.SLACK_WEBHOOK_URL
-      run: |
-        curl -X POST -H 'Content-type: application/json' \
-             --data '{"text":"🚀 Personal Chatter ${{ needs.validate.outputs.version }} has been released!"}' \
-             ${{ secrets.SLACK_WEBHOOK_URL }}
+        # - Monitor logs  # Notify stakeholders

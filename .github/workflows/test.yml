@@ -72,9 +72,8 @@ jobs:
         else
           echo "type=quick" >> $GITHUB_OUTPUT
         fi
-
   # Code quality and security checks
-  quality-checks:
+  quality_checks:
     runs-on: ubuntu-latest
     needs: pre-flight
     if: needs.pre-flight.outputs.should_run_tests == 'true' || github.event_name == 'schedule'
@@ -138,11 +137,10 @@ jobs:
         path: |
           bandit-report.json
           safety-report.json
-
   # Main test suite
   test:
     runs-on: ${{ matrix.os }}
-    needs: [pre-flight, quality-checks]
+    needs: [pre-flight, quality_checks]
     if: needs.pre-flight.outputs.should_run_tests == 'true' || github.event_name == 'schedule'
     strategy:
       fail-fast: false
@@ -344,11 +342,10 @@ jobs:
       with:
         languages: python
         queries: security-and-quality
-
   # Documentation build
   docs:
     runs-on: ubuntu-latest
-    needs: quality-checks
+    needs: quality_checks
     if: github.event_name == 'push' || github.event_name == 'schedule'
     
     steps:
@@ -453,7 +450,7 @@ jobs:
         echo "# Workflow Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "## Test Results" >> $GITHUB_STEP_SUMMARY
-        echo "- Quality Checks: ${{ needs.quality-checks.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Quality Checks: ${{ needs.quality_checks.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- Main Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- Performance: ${{ needs.performance.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- Security: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
