@@ -1,25 +1,24 @@
-# Frai 🤖💬
-
+# Frai - Your own AI friend
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Tests](https://img.shields.io/github/actions/workflow/status/your-org/personal-chatter/tests.yml?label=tests&logo=github)](https://github.com/your-org/personal-chatter/actions/workflows/tests.yml)
-[![codecov](https://codecov.io/gh/your-org/personal-chatter/branch/main/graph/badge.svg)](https://codecov.io/gh/your-org/personal-chatter)
+[![Tests](https://img.shields.io/github/actions/workflow/status/your-org/frai/tests.yml?label=tests&logo=github)](https://github.com/your-org/frai/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/your-org/frai/branch/main/graph/badge.svg)](https://codecov.io/gh/your-org/frai)
 
 > An open-source AI companion that runs locally and keeps your data private.
 
 ## 🎯 Purpose
 
-Personal Chatter is a free, privacy-focused AI companion designed to provide an alternative to paid services like ChatGPT and Gemini. It runs entirely on your local machine, ensuring your conversations and data remain private.
+Frai is a free, privacy-focused AI companion designed to provide an alternative to paid services like ChatGPT and Gemini. It runs entirely on your local machine, ensuring your conversations and data remain private.
 
-## 🌟 Why Personal Chatter?
+## 🌟 Why Frai?
 
 In today's world, AI chatbots typically:
 - 💰 **Require subscriptions** for full functionality
 - 🔒 **Store your personal data** on company servers
 - 🌐 **Need internet connectivity** for basic operation
 
-**Personal Chatter is different:**
+**Frai is different:**
 - ✅ **100% Local** - Runs entirely on your device
 - ✅ **Privacy-First** - Your data never leaves your machine
 - ✅ **Free** - No subscriptions or hidden costs
@@ -66,8 +65,8 @@ This will prompt you to enter your Hugging Face token, which you can find in you
 This repository contains model dependencies as git submodules. When cloning, use the `--recursive` flag:
 
 ```bash
-git clone --recursive https://github.com/your-org/personal-chatter.git
-cd personal-chatter
+git clone --recursive https://github.com/your-org/frai.git
+cd frai
 ```
 
 If you've already cloned the repository without the `--recursive` flag, initialize and update the submodules with:
@@ -189,8 +188,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/your-org/personal-chatter/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/your-org/personal-chatter/discussions)
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/your-org/frai/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/your-org/frai/discussions)
 
 ---
 
