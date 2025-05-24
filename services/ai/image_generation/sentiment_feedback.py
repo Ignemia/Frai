@@ -1,5 +1,5 @@
 """
-from test_mock_helper import List
+from typing import List
 Sentiment analysis feedback system for image refinement.
 
 This module analyzes user feedback on generated images and provides

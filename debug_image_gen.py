@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from test_mock_helper import List
+from typing import List
 """
 Simplified debug version of the image generator to isolate the hanging issue.
 """

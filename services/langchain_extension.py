@@ -8,7 +8,7 @@ import logging
 import time
 import uuid
 from typing import Dict, Optional, Any, Union
-from test_mock_helper import List
+from typing import List
 
 logger = logging.getLogger(__name__)
 

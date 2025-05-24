@@ -1,16 +1,13 @@
 """
-from test_mock_helper import List
 Main Image generation service for Personal Chatter.
 
 This module serves as the primary interface for image generation,
-delegating to the optimized modular Flux.1 system with integrated
-memory management, progress tracking, and style presets.
+providing a clean, unified API that delegates to the modular
+Flux.1 system with integrated memory management, progress tracking,
+and style presets.
 """
-import os
 import logging
-import time
-import asyncio
-from typing import Dict, Optional, Any, Tuple, Callable, Union, 
+from typing import Dict, Optional, Any, Tuple, Callable, Union
 from pathlib import Path
 
 from services.config import get_config
@@ -21,15 +18,15 @@ logger = logging.getLogger(__name__)
 config = get_config()
 
 # Constants for backward compatibility
-IMG_DEFAULT_HEIGHT = 1024
-IMG_DEFAULT_WIDTH = 1024
-NUM_INFERENCE_STEPS = 35
-GUIDANCE_SCALE = 7.0
-OUTPUT_DIR = "./outputs"
+IMG_DEFAULT_HEIGHT = config.get("image_generation", {}).get("default_height", 512)
+IMG_DEFAULT_WIDTH = config.get("image_generation", {}).get("default_width", 512)
+NUM_INFERENCE_STEPS = config.get("image_generation", {}).get("default_steps", 20)
+GUIDANCE_SCALE = config.get("image_generation", {}).get("default_guidance_scale", 7.0)
+OUTPUT_DIR = config.get("image_generation", {}).get("output_dir", "./outputs")
 
 # Import the modular components
 try:
-    from .ai.image_generation.flux_generator import (
+    from services.ai.image_generation.flux_generator import (
         generate_image as _generate_image,
         generate_image_with_feedback as _generate_image_with_feedback,
         generate_image_async as _generate_image_async,
@@ -38,8 +35,8 @@ try:
         reload_model as _reload_model,
         validate_prompt as _validate_prompt
     )
-    from .ai.image_generation.style_presets import StylePreset
-    from .ai.image_generation.image_to_image import (
+    from services.ai.image_generation.style_presets import StylePreset
+    from services.ai.image_generation.image_to_image import (
         generate_image_to_image,
         generate_image_to_image_async
     )
@@ -50,15 +47,35 @@ except ImportError as e:
     MODULAR_SYSTEM_AVAILABLE = False
     StylePreset = None
 
+
+class ImageGenerationError(Exception):
+    """Custom exception for image generation errors."""
+    pass
+
+
+def _convert_style_to_preset(style: Union[str, StylePreset, None]) -> Optional[StylePreset]:
+    """Convert string style to StylePreset enum if needed."""
+    if not style or not StylePreset:
+        return None
+    
+    try:
+        if isinstance(style, str):
+            return StylePreset(style.lower())
+        return style
+    except ValueError:
+        logger.warning(f"Unknown style preset: {style}")
+        return None
+
+
 def generate_image(
     prompt: str, 
     height: int = IMG_DEFAULT_HEIGHT, 
     width: int = IMG_DEFAULT_WIDTH,
     steps: int = NUM_INFERENCE_STEPS, 
     guidance_scale: float = GUIDANCE_SCALE,
-    negative_prompt: str = None,
-    style: str = None,  # Accept string for backward compatibility
-    session_id: str = None,
+    negative_prompt: Optional[str] = None,
+    style: Union[str, StylePreset, None] = None,
+    session_id: Optional[str] = None,
     progress_callback: Optional[Callable] = None
 ) -> Tuple[Optional[str], Optional[str]]:
     """
@@ -79,21 +96,14 @@ def generate_image(
         Tuple containing:
             - Path to the generated image if successful, None otherwise
             - URL or relative path to the image for displaying
+            
+    Raises:
+        ImageGenerationError: If the modular system is not available
     """
     if not MODULAR_SYSTEM_AVAILABLE:
-        logger.error("Modular image generation system is not available")
-        return None, None
+        raise ImageGenerationError("Modular image generation system is not available")
     
-    # Convert string style to StylePreset enum if needed
-    style_preset = None
-    if style and StylePreset:
-        try:
-            if isinstance(style, str):
-                style_preset = StylePreset(style.lower())
-            else:
-                style_preset = style
-        except ValueError:
-            logger.warning(f"Unknown style preset: {style}")
+    style_preset = _convert_style_to_preset(style)
     
     try:
         return _generate_image(
@@ -109,7 +119,8 @@ def generate_image(
         )
     except Exception as e:
         logger.error(f"Error in image generation: {e}", exc_info=True)
-        return None, None
+        raise ImageGenerationError(f"Image generation failed: {e}") from e
+
 
 def generate_image_with_feedback(
     prompt: str,
@@ -117,9 +128,9 @@ def generate_image_with_feedback(
     width: int = IMG_DEFAULT_WIDTH,
     steps: int = NUM_INFERENCE_STEPS,
     guidance_scale: float = GUIDANCE_SCALE,
-    negative_prompt: str = None,
-    style: str = None,
-    session_id: str = None,
+    negative_prompt: Optional[str] = None,
+    style: Union[str, StylePreset, None] = None,
+    session_id: Optional[str] = None,
     progress_callback: Optional[Callable] = None,
     user_feedback: Optional[Dict[str, Any]] = None
 ) -> Tuple[Optional[str], Optional[str], Optional[Dict[str, Any]]]:
@@ -143,21 +154,14 @@ def generate_image_with_feedback(
             - Path to the generated image if successful, None otherwise
             - URL or relative path to the image for displaying
             - Analysis results and suggestions for improvement
+            
+    Raises:
+        ImageGenerationError: If the modular system is not available
     """
     if not MODULAR_SYSTEM_AVAILABLE:
-        logger.error("Modular image generation system is not available")
-        return None, None, None
+        raise ImageGenerationError("Modular image generation system is not available")
     
-    # Convert string style to StylePreset enum if needed
-    style_preset = None
-    if style and StylePreset:
-        try:
-            if isinstance(style, str):
-                style_preset = StylePreset(style.lower())
-            else:
-                style_preset = style
-        except ValueError:
-            logger.warning(f"Unknown style preset: {style}")
+    style_preset = _convert_style_to_preset(style)
     
     try:
         return _generate_image_with_feedback(
@@ -174,7 +178,8 @@ def generate_image_with_feedback(
         )
     except Exception as e:
         logger.error(f"Error in image generation with feedback: {e}", exc_info=True)
-        return None, None, None
+        raise ImageGenerationError(f"Image generation with feedback failed: {e}") from e
+
 
 async def generate_image_async(
     prompt: str,
@@ -182,9 +187,9 @@ async def generate_image_async(
     width: int = IMG_DEFAULT_WIDTH,
     steps: int = NUM_INFERENCE_STEPS,
     guidance_scale: float = GUIDANCE_SCALE,
-    negative_prompt: str = None,
-    style: str = None,
-    session_id: str = None,
+    negative_prompt: Optional[str] = None,
+    style: Union[str, StylePreset, None] = None,
+    session_id: Optional[str] = None,
     progress_callback: Optional[Callable] = None
 ) -> Tuple[Optional[str], Optional[str]]:
     """
@@ -205,21 +210,14 @@ async def generate_image_async(
         Tuple containing:
             - Path to the generated image if successful, None otherwise
             - URL or relative path to the image for displaying
+            
+    Raises:
+        ImageGenerationError: If the modular system is not available
     """
     if not MODULAR_SYSTEM_AVAILABLE:
-        logger.error("Modular image generation system is not available")
-        return None, None
+        raise ImageGenerationError("Modular image generation system is not available")
     
-    # Convert string style to StylePreset enum if needed
-    style_preset = None
-    if style and StylePreset:
-        try:
-            if isinstance(style, str):
-                style_preset = StylePreset(style.lower())
-            else:
-                style_preset = style
-        except ValueError:
-            logger.warning(f"Unknown style preset: {style}")
+    style_preset = _convert_style_to_preset(style)
     
     try:
         return await _generate_image_async(
@@ -235,7 +233,8 @@ async def generate_image_async(
         )
     except Exception as e:
         logger.error(f"Error in async image generation: {e}", exc_info=True)
-        return None, None
+        raise ImageGenerationError(f"Async image generation failed: {e}") from e
+
 
 def get_model_status() -> Dict[str, Any]:
     """
@@ -244,22 +243,30 @@ def get_model_status() -> Dict[str, Any]:
     Returns:
         Dictionary containing model status information
     """
-    if not MODULAR_SYSTEM_AVAILABLE:
-        return {
-            "error": "Modular image generation system is not available",
-            "modular_system_available": False
+    base_status = {
+        "modular_system_available": MODULAR_SYSTEM_AVAILABLE,
+        "output_directory": OUTPUT_DIR,
+        "default_settings": {
+            "height": IMG_DEFAULT_HEIGHT,
+            "width": IMG_DEFAULT_WIDTH,
+            "steps": NUM_INFERENCE_STEPS,
+            "guidance_scale": GUIDANCE_SCALE
         }
+    }
+    
+    if not MODULAR_SYSTEM_AVAILABLE:
+        base_status["error"] = "Modular image generation system is not available"
+        return base_status
     
     try:
         status = _get_model_status()
-        status["modular_system_available"] = True
+        status.update(base_status)
         return status
     except Exception as e:
         logger.error(f"Error getting model status: {e}", exc_info=True)
-        return {
-            "error": str(e),
-            "modular_system_available": MODULAR_SYSTEM_AVAILABLE
-        }
+        base_status["error"] = str(e)
+        return base_status
+
 
 def unload_model() -> bool:
     """
@@ -278,6 +285,7 @@ def unload_model() -> bool:
         logger.error(f"Error unloading model: {e}", exc_info=True)
         return False
 
+
 def reload_model() -> bool:
     """
     Reload the image generation models.
@@ -294,6 +302,7 @@ def reload_model() -> bool:
     except Exception as e:
         logger.error(f"Error reloading model: {e}", exc_info=True)
         return False
+
 
 def validate_prompt(prompt: str) -> Tuple[bool, str, Optional[str]]:
     """
@@ -322,18 +331,22 @@ def validate_prompt(prompt: str) -> Tuple[bool, str, Optional[str]]:
         logger.error(f"Error validating prompt: {e}", exc_info=True)
         return False, f"Error validating prompt: {e}", None
 
+
 # Backward compatibility functions
 def generate_flux_image(prompt: str, **kwargs) -> Tuple[Optional[str], Optional[str]]:
     """Backward compatibility wrapper for generate_image."""
     return generate_image(prompt, **kwargs)
 
+
 async def generate_flux_image_async(prompt: str, **kwargs) -> Tuple[Optional[str], Optional[str]]:
     """Backward compatibility wrapper for generate_image_async."""
     return await generate_image_async(prompt, **kwargs)
 
+
 def get_flux_model_status() -> Dict[str, Any]:
     """Backward compatibility wrapper for get_model_status."""
     return get_model_status()
+
 
 # Export main functions
 __all__ = [
@@ -347,6 +360,7 @@ __all__ = [
     "reload_model",
     "validate_prompt",
     "StylePreset",
+    "ImageGenerationError",
     # Backward compatibility
     "generate_flux_image",
     "generate_flux_image_async",

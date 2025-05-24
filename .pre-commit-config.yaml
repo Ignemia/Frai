@@ -1,0 +1,120 @@
+# Pre-commit configuration for Personal Chatter
+# This file configures automatic code quality checks before commits
+
+repos:
+  # Python code formatting
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        language_version: python3
+        args: [--line-length=88]
+
+  # Import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=88]
+
+  # Python linting
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.1.9
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+
+  # Security checks
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: [-r, -ll]
+        exclude: tests/
+
+  # YAML formatting
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        types: [yaml]
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: [--maxkb=10000]  # 10MB limit
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-json
+      - id: pretty-format-json
+        args: [--autofix]
+      - id: check-toml
+      - id: check-xml
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # Python-specific checks
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+      - id: python-check-blanket-noqa
+      - id: python-check-mock-methods
+      - id: python-no-eval
+      - id: python-no-log-warn
+      - id: python-use-type-annotations
+
+  # Dockerfile linting
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        args: [--ignore, DL3008, --ignore, DL3009]
+
+  # Local hooks for project-specific checks
+  - repo: local
+    hooks:
+      - id: pytest-check
+        name: pytest-check
+        entry: python -m pytest tests/ --co -q
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+        
+      - id: requirements-check
+        name: requirements-check
+        entry: python -c "import pkg_resources; pkg_resources.require(open('requirements.txt').read().splitlines())"
+        language: system
+        pass_filenames: false
+        files: requirements.*\.txt$
+        
+      - id: test-structure-check
+        name: test-structure-check
+        entry: python -c "
+import os
+required_dirs = ['tests/unit', 'tests/integration', 'tests/blackbox', 'tests/performance']
+missing = [d for d in required_dirs if not os.path.exists(d)]
+if missing: 
+    print(f'Missing test directories: {missing}')
+    exit(1)
+"
+        language: system
+        pass_filenames: false
+        always_run: true
+
+# Configuration
+ci:
+  autofix_commit_msg: |
+      [pre-commit.ci] auto fixes from pre-commit hooks
+
+      for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

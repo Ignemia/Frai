@@ -1,5 +1,5 @@
 """
-from test_mock_helper import List
+from typing import List
 Command processing module for Personal Chatter.
 
 This module handles preprocessing of user messages to detect specific command

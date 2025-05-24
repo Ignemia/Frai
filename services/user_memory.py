@@ -1,5 +1,5 @@
 """
-from test_mock_helper import List
+from typing import List
 User memory service for Personal Chatter.
 
 This module handles storing and retrieving personal information and general memory

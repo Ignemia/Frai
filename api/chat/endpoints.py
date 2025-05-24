@@ -1,5 +1,5 @@
 """
-from test_mock_helper import List
+from typing import List
 Chat API endpoints for Personal Chatter application.
 
 This module provides REST API endpoints for chat operations including:

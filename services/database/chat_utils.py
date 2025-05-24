@@ -1,7 +1,7 @@
 import logging
 import datetime
 from services.database.connection import get_db_session
-from test_mock_helper import List
+from typing import List
 
 logger = logging.getLogger(__name__)
 

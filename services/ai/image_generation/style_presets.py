@@ -1,5 +1,5 @@
 """
-from test_mock_helper import List
+from typing import List
 Style presets and prompt enhancement system for image generation.
 
 This module provides three main style presets (Riot Games, Realistic, Anime)

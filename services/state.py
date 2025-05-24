@@ -1,10 +1,10 @@
-from test_mock_helper import List
-
 """
 Global state management module.
 This module provides functions to get and set global state
 without causing circular dependencies.
 """
+
+from typing import List, Dict, Any, Optional
 
 # Define application states
 APP_STATE_HOME = "Home"

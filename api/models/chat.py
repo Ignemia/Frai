@@ -1,5 +1,5 @@
 """
-from test_mock_helper import List
+from typing import List
 API models for chat operations.
 
 This module defines Pydantic models for request validation and response formatting

@@ -1,5 +1,5 @@
 """
-from test_mock_helper import List
+from typing import List
 Local document search service for Personal Chatter.
 
 This module handles searching through local documents stored by the user.

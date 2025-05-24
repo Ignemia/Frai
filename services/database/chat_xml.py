@@ -2,7 +2,7 @@ import logging
 import datetime
 import os
 import xml.etree.ElementTree as ET
-from test_mock_helper import List
+from typing import List
 
 logger = logging.getLogger(__name__)
 

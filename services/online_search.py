@@ -1,5 +1,5 @@
 """
-from test_mock_helper import List
+from typing import List
 Online search service for Personal Chatter.
 
 This module handles searching for information online using the Brave Search API

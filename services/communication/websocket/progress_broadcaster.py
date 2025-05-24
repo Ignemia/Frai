@@ -1,5 +1,5 @@
 """
-from test_mock_helper import List
+from typing import List
 WebSocket manager for real-time progress updates.
 
 This module provides a singleton connection manager that can be used
