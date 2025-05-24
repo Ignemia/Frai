@@ -1,0 +1,182 @@
+# Test configuration for Personal Chatter
+# This file provides configuration for running tests on Windows
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config", 
+    "--cov=services",
+    "--cov=api",
+    "--cov-report=term-missing",
+    "--cov-report=html:tests/coverage_html",
+    "--cov-report=xml:tests/coverage.xml",
+    "--cov-fail-under=80",
+    "--disable-warnings",
+    "--tb=short",
+    "--maxfail=5",
+    "-x",
+    "--ff"
+]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+console_output_style = "progress"
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+markers = [
+    "unit: Unit tests - fast, isolated tests",
+    "integration: Integration tests - test component interactions", 
+    "implementation: Implementation tests - end-to-end feature tests",
+    "blackbox: Black box tests - user-facing functionality tests",
+    "performance: Performance tests - benchmarking and load tests",
+    "slow: Slow running tests - tests that take more than 5 seconds",
+    "gpu: Tests requiring GPU - skip if no GPU available",
+    "network: Tests requiring network access - skip in offline mode",
+    "external: Tests requiring external services - mock by default",
+    "security: Security tests - authentication, authorization, etc.",
+    "api: API endpoint tests",
+    "database: Database interaction tests",
+    "ai: AI model tests",
+    "image: Image generation tests",
+    "chat: Chat functionality tests",
+    "user: User management tests",
+    "memory: Memory system tests",
+    "search: Search functionality tests",
+    "windows: Windows-specific tests",
+    "unix: Unix/Linux-specific tests",
+    "regression: Regression tests for previously fixed bugs",
+    "smoke: Smoke tests - basic functionality checks"
+]
+
+filterwarnings = [
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::torch.jit._warnings.UserWarning",
+    "ignore::transformers.modeling_utils.FutureWarning"
+]
+
+# Test discovery patterns
+norecursedirs = [
+    ".*",
+    "build",
+    "dist",
+    "CVS",
+    "_darcs",
+    "{arch}",
+    "*.egg",
+    "venv",
+    "env",
+    "__pycache__",
+    "node_modules"
+]
+
+# Timeout configuration
+timeout = 300
+timeout_method = "thread"
+
+# Parallel execution settings
+# Uncomment to enable parallel test execution
+# addopts = ["-n", "auto"]
+
+[tool.coverage.run]
+source = ["api", "services"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+    "*/venv/*",
+    "*/env/*",
+    "setup.py",
+    "*/legacy/*",
+    "*/prototypes/*"
+]
+branch = true
+data_file = "tests/.coverage"
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod"
+]
+show_missing = true
+skip_covered = false
+precision = 2
+
+[tool.coverage.html]
+directory = "tests/coverage_html"
+title = "Personal Chatter Test Coverage"
+
+[tool.coverage.xml]
+output = "tests/coverage.xml"
+
+# Black configuration for test files
+[tool.black]
+line-length = 88
+target-version = ["py38", "py39", "py310", "py311", "py312"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+# isort configuration for test files
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["api", "services", "tests"]
+known_third_party = [
+    "pytest",
+    "fastapi",
+    "torch", 
+    "transformers",
+    "diffusers",
+    "sqlalchemy",
+    "pydantic"
+]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+default_section = "THIRDPARTY"
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+# MyPy configuration for test files
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # More lenient for tests
+ignore_missing_imports = true
+show_error_codes = true
+files = ["tests/"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+check_untyped_defs = false

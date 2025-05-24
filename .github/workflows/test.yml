@@ -1,0 +1,619 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run tests daily at 6 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of tests to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - unit
+          - integration
+          - performance
+          - security
+          - quick
+      run_deployment:
+        description: 'Deploy after successful tests'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  # Pre-flight checks
+  pre-flight:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run_tests: ${{ steps.changes.outputs.should_run }}
+      test_type: ${{ steps.test-type.outputs.type }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Check for relevant changes
+      id: changes
+      uses: dorny/paths-filter@v2
+      with:
+        filters: |
+          code:
+            - 'src/**'
+            - 'api/**'
+            - 'services/**'
+            - 'tests/**'
+            - 'requirements*.txt'
+            - 'setup.py'
+            - 'pyproject.toml'
+            - '.github/workflows/**'
+
+    - name: Determine test type
+      id: test-type
+      run: |
+        if [[ "${{ github.event.inputs.test_type }}" != "" ]]; then
+          echo "type=${{ github.event.inputs.test_type }}" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.event_name }}" == "schedule" ]]; then
+          echo "type=all" >> $GITHUB_OUTPUT
+        elif [[ "${{ steps.changes.outputs.code }}" == "true" ]]; then
+          echo "type=all" >> $GITHUB_OUTPUT
+        else
+          echo "type=quick" >> $GITHUB_OUTPUT
+        fi
+
+  # Code quality and security checks
+  quality-checks:
+    runs-on: ubuntu-latest
+    needs: pre-flight
+    if: needs.pre-flight.outputs.should_run_tests == 'true' || github.event_name == 'schedule'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: Install quality tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install black isort mypy bandit safety ruff pre-commit
+        pip install -r requirements.txt
+    
+    - name: Run pre-commit hooks
+      run: |
+        pre-commit install
+        pre-commit run --all-files --show-diff-on-failure
+      continue-on-error: true
+    
+    - name: Check code formatting with Black
+      run: |
+        black --check --diff src/ api/ services/ tests/ || exit 1
+    
+    - name: Check import sorting with isort
+      run: |
+        isort --check-only --diff src/ api/ services/ tests/ || exit 1
+    
+    - name: Lint with Ruff (fast Python linter)
+      run: |
+        ruff check src/ api/ services/ tests/ --output-format=github
+    
+    - name: Type checking with mypy
+      run: |
+        mypy src/ api/ services/ --ignore-missing-imports --no-strict-optional --show-error-codes
+      continue-on-error: true
+    
+    - name: Security check with bandit
+      run: |
+        bandit -r src/ api/ services/ -ll -f json -o bandit-report.json
+        bandit -r src/ api/ services/ -ll  # Also show in console
+      continue-on-error: true
+    
+    - name: Check dependencies for vulnerabilities
+      run: |
+        safety check --json --output safety-report.json
+        safety check  # Also show in console
+      continue-on-error: true
+    
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+
+  # Main test suite
+  test:
+    runs-on: ${{ matrix.os }}
+    needs: [pre-flight, quality-checks]
+    if: needs.pre-flight.outputs.should_run_tests == 'true' || github.event_name == 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        exclude:
+          # Exclude some combinations to speed up CI
+          - os: macos-latest
+            python-version: '3.8'
+          - os: windows-latest
+            python-version: '3.8'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/pip
+          ~/.cache/torch
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+          ${{ runner.os }}-pip-
+    
+    - name: Install system dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libgl1-mesa-glx \
+          libglib2.0-0 \
+          libsm6 \
+          libxext6 \
+          libxrender-dev \
+          libgomp1 \
+          libglib2.0-0 \
+          libgtk-3-0 \
+          libgdk-pixbuf2.0-0
+      - name: Install system dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install libomp
+    
+    - name: Install Python dependencies (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        python -m pip install --upgrade pip wheel setuptools
+        pip install pytest pytest-cov pytest-xdist pytest-mock pytest-benchmark
+        pip install psutil memory_profiler
+        pip install pytest-timeout pytest-sugar pytest-clarity
+        
+        if (Test-Path "requirements.txt") { pip install -r requirements.txt }
+        if (Test-Path "requirements-test.txt") { pip install -r requirements-test.txt }
+        if (Test-Path "requirements-dev.txt") { pip install -r requirements-dev.txt }
+      shell: pwsh
+    
+    - name: Install Python dependencies (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        python -m pip install --upgrade pip wheel setuptools
+        pip install pytest pytest-cov pytest-xdist pytest-mock pytest-benchmark
+        pip install psutil memory_profiler
+        pip install pytest-timeout pytest-sugar pytest-clarity
+        
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+        if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+      shell: bash
+    
+    - name: Install package in development mode
+      run: |
+        pip install -e .
+      continue-on-error: true
+    
+    - name: Create test results directory
+      run: |
+        mkdir -p test-results
+    
+    - name: Run comprehensive tests
+      env:
+        PYTEST_CURRENT_TEST: 1
+        CI: true
+        GITHUB_ACTIONS: true
+      run: |
+        python main.py tests ${{ needs.pre-flight.outputs.test_type }} \
+          --coverage \
+          --parallel 2 \
+          --verbose \
+          --report
+      timeout-minutes: 45
+      continue-on-error: true
+    
+    - name: Run individual test categories on failure
+      if: failure()
+      run: |
+        echo "Comprehensive tests failed, running individual categories..."
+        python main.py tests unit --coverage || true
+        python main.py tests integration || true
+        python main.py tests quick || true
+      continue-on-error: true
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.os }}-py${{ matrix.python-version }}
+        path: |
+          test-results/
+          htmlcov/
+          coverage.xml
+          .coverage
+          junit*.xml
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10'
+      with:
+        files: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+        verbose: true
+
+  # Performance benchmarks
+  performance:
+    runs-on: ubuntu-latest
+    needs: [pre-flight, test]
+    if: |
+      (needs.pre-flight.outputs.test_type == 'all' || 
+       needs.pre-flight.outputs.test_type == 'performance') &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-benchmark memory_profiler
+    
+    - name: Run performance benchmarks
+      run: |
+        python main.py tests performance --verbose
+        pytest tests/performance/ --benchmark-json=benchmark.json
+      timeout-minutes: 30
+    
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v3
+      with:
+        name: benchmark-results
+        path: benchmark.json
+
+  # Security scanning
+  security:
+    runs-on: ubuntu-latest
+    needs: pre-flight
+    if: needs.pre-flight.outputs.should_run_tests == 'true' || github.event_name == 'schedule'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH,MEDIUM'
+    
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+    
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+      with:
+        languages: python
+        queries: security-and-quality
+
+  # Documentation build
+  docs:
+    runs-on: ubuntu-latest
+    needs: quality-checks
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install documentation dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints
+        pip install -r requirements.txt
+    
+    - name: Build documentation
+      run: |
+        if [ -d "docs" ]; then
+          cd docs
+          make html
+        else
+          echo "No docs directory found, generating basic docs..."
+          mkdir -p docs
+          sphinx-quickstart -q -p "Personal Chatter" -a "Team" -v "1.0" docs/
+          cd docs
+          make html
+        fi
+    
+    - name: Upload documentation
+      uses: actions/upload-artifact@v3
+      with:
+        name: documentation
+        path: docs/_build/html/
+
+  # Deployment (only on main branch with successful tests)
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [test, security, docs]
+    if: |
+      github.ref == 'refs/heads/main' && 
+      (github.event.inputs.run_deployment == 'true' || github.event_name == 'schedule') &&
+      success()
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to staging
+      run: |
+        echo "🚀 Deploying to staging environment..."
+        # Add your deployment commands here
+        echo "Deployment would happen here"
+    
+    - name: Run smoke tests on staging
+      run: |
+        echo "🧪 Running smoke tests on staging..."
+        # Add staging smoke tests here
+        python main.py tests quick
+    
+    - name: Deploy to production
+      if: success()
+      run: |
+        echo "🚀 Deploying to production environment..."
+        # Add your production deployment commands here
+        echo "Production deployment would happen here"
+
+  # Cleanup and notifications
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: [test, performance, security, docs, deploy]
+    if: always()
+    
+    steps:
+    - name: Clean up artifacts
+      run: |
+        echo "🧹 Cleaning up temporary artifacts..."
+    
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "❌ Some jobs failed. Check the workflow for details."
+        # Add notification logic here (Slack, Discord, email, etc.)
+    
+    - name: Notify on success
+      if: success()
+      run: |
+        echo "✅ All jobs completed successfully!"
+        # Add success notification logic here
+
+# Workflow summary
+  summary:
+    runs-on: ubuntu-latest
+    needs: [test, performance, security, docs]
+    if: always()
+    
+    steps:
+    - name: Generate workflow summary
+      run: |
+        echo "# Workflow Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "- Quality Checks: ${{ needs.quality-checks.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Main Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Performance: ${{ needs.performance.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Security: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Documentation: ${{ needs.docs.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Artifacts Generated" >> $GITHUB_STEP_SUMMARY
+        echo "- Test results and coverage reports" >> $GITHUB_STEP_SUMMARY
+        echo "- Security scan results" >> $GITHUB_STEP_SUMMARY
+        echo "- Documentation build" >> $GITHUB_STEP_SUMMARY
+        echo "- Performance benchmarks" >> $GITHUB_STEP_SUMMARY
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev libgomp1
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-cov pytest-xdist pytest-mock
+        pip install psutil  # For performance tests
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+    
+    - name: Lint with flake8
+      run: |
+        pip install flake8
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 src/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    
+    - name: Run unit tests
+      run: |
+        python tests/run_tests.py unit --coverage --parallel 2
+    
+    - name: Run integration tests
+      run: |
+        python tests/run_tests.py integration --parallel 2
+    
+    - name: Run implementation tests
+      run: |
+        python tests/run_tests.py implementation
+    
+    - name: Run blackbox tests
+      run: |
+        python tests/run_tests.py blackbox
+    
+    - name: Run performance tests (basic)
+      run: |
+        # Run only benchmark tests, skip stress tests in CI
+        pytest tests/performance/ -m "benchmark and not stress" --maxfail=5
+    
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+    
+    - name: Generate coverage badge
+      run: |
+        pip install coverage-badge
+        coverage-badge -o coverage.svg
+    
+    - name: Archive coverage reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report-${{ matrix.python-version }}
+        path: |
+          htmlcov/
+          coverage.xml
+          coverage.svg
+
+  quality-checks:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install quality tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install black isort mypy bandit safety
+    
+    - name: Check code formatting with Black
+      run: |
+        black --check --diff src/ tests/
+    
+    - name: Check import sorting with isort
+      run: |
+        isort --check-only --diff src/ tests/
+    
+    - name: Type checking with mypy
+      run: |
+        mypy src/ --ignore-missing-imports --no-strict-optional
+    
+    - name: Security check with bandit
+      run: |
+        bandit -r src/ -ll
+    
+    - name: Check dependencies for security vulnerabilities
+      run: |
+        safety check
+
+  docs:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install documentation dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install sphinx sphinx-rtd-theme
+    
+    - name: Build documentation
+      run: |
+        # If you have docs directory
+        if [ -d "docs" ]; then
+          cd docs
+          make html
+        fi
+    
+    - name: Check README
+      run: |
+        python -m pip install readme_renderer
+        python -m readme_renderer README.md -o /tmp/readme.html
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'

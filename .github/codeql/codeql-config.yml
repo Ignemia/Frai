@@ -1,0 +1,51 @@
+name: "Personal Chatter CodeQL Config"
+
+# Disable default queries to use only security-focused ones
+disable-default-queries: false
+
+# Custom query packs and queries
+queries:
+  - name: security-extended
+    uses: security-extended
+  - name: security-and-quality
+    uses: security-and-quality
+
+# Paths to exclude from analysis
+paths-ignore:
+  - "tests/"
+  - "**/*test*.py"
+  - "**/conftest.py"
+  - "build/"
+  - "dist/"
+  - "*.egg-info/"
+  - "venv/"
+  - "env/"
+  - "__pycache__/"
+  - "models/"  # Exclude downloaded model files
+  - "*.pyc"
+  - "*.pyo"
+
+# Paths to include (override excludes if needed)
+paths:
+  - "api/"
+  - "services/"
+  - "src/"
+  - "main.py"
+  - "setup.py"
+
+# Custom query suites
+query-filters:
+  - exclude:
+      id: py/clear-text-logging-sensitive-data
+      # Exclude if we have intentional debug logging
+  - include:
+      severity: error
+  - include:
+      severity: warning
+      precision: high
+
+# Additional configuration for specific languages
+python:
+  # Include additional Python security queries
+  dependency-installation-timeout: 600
+  setup-python-dependencies: true

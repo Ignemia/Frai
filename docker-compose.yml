@@ -1,0 +1,181 @@
+# Docker Compose for Personal Chatter
+# Production and development configurations
+version: '3.8'
+
+services:
+  # Main application service
+  personal-chatter:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: personal-chatter-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./outputs:/app/outputs
+      - ./models:/app/models
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+      - PYTHONPATH=/app
+      - TOKENIZERS_PARALLELISM=false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - personal-chatter-network
+    depends_on:
+      - redis
+    profiles:
+      - production
+
+  # Development service with hot reload
+  personal-chatter-dev:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: personal-chatter-dev
+    ports:
+      - "8000:8000"
+      - "8001:8001"  # Additional port for debugging
+    volumes:
+      - .:/app
+      - ./outputs:/app/outputs
+      - ./models:/app/models
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=debug
+      - PYTHONPATH=/app
+      - TOKENIZERS_PARALLELISM=false
+      - RELOAD=true
+    command: ["uvicorn", "api.api:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    networks:
+      - personal-chatter-network
+    depends_on:
+      - redis
+    profiles:
+      - development
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: personal-chatter-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    restart: unless-stopped
+    networks:
+      - personal-chatter-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Database service (if needed for future features)
+  postgres:
+    image: postgres:15-alpine
+    container_name: personal-chatter-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=personal_chatter
+      - POSTGRES_USER=personal_chatter
+      - POSTGRES_PASSWORD=development_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - personal-chatter-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U personal_chatter"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - database
+
+  # Monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: personal-chatter-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - personal-chatter-network
+    profiles:
+      - monitoring
+
+  # Grafana for metrics visualization
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: personal-chatter-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    restart: unless-stopped
+    networks:
+      - personal-chatter-network
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+
+  # Testing service
+  test-runner:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: personal-chatter-tests
+    volumes:
+      - .:/app
+      - ./tests/reports:/app/tests/reports
+    environment:
+      - ENVIRONMENT=testing
+      - PYTHONPATH=/app
+    command: ["python", "-m", "pytest", "--cov=api", "--cov=services", "--cov-report=html", "--cov-report=xml"]
+    networks:
+      - personal-chatter-network
+    profiles:
+      - testing
+
+volumes:
+  redis_data:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  personal-chatter-network:
+    driver: bridge
