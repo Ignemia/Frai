@@ -54,3 +54,6 @@ Thumbs.db
 # self-build
 frai/
 frai/**/*
+
+# old structure
+old*
