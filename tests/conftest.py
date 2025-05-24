@@ -132,7 +132,7 @@ def pytest_collection_modifyitems(config, items):
     """Modify test collection to add markers based on location."""
     for item in items:
         # Get the relative path from tests directory
-        rel_path = Path(item.fspath).relative_to(Path(config.rootdir) / "tests")
+        rel_path = Path(item.fspath).relative_to(Path(config.rootdir))
         
         # Add markers based on directory
         if rel_path.parts[0] == "unit":

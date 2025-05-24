@@ -181,6 +181,39 @@ class TestFixtures:
         }
     
     @staticmethod
+    def sample_api_requests() -> Dict[str, Dict[str, Any]]:
+        """Sample API requests for different endpoints."""
+        return {
+            "image_generation_request": {
+                "prompt": "A beautiful landscape with mountains",
+                "width": 512,
+                "height": 512,
+                "num_inference_steps": 20,
+                "guidance_scale": 7.5
+            },
+            "batch_generation_request": {
+                "prompts": [
+                    "A red rose",
+                    "A blue ocean",
+                    "A green forest"
+                ],
+                "width": 512,
+                "height": 512,
+                "num_inference_steps": 15
+            },
+            "invalid_request_empty_prompt": {
+                "prompt": "",
+                "width": 512,
+                "height": 512
+            },
+            "invalid_request_bad_dimensions": {
+                "prompt": "Test image",
+                "width": 0,
+                "height": 512
+            }
+        }
+    
+    @staticmethod
     def validation_test_cases() -> List[Dict[str, Any]]:
         """Test cases for parameter validation."""
         return [
@@ -235,6 +268,42 @@ class TestFixtures:
                 "params": {"prompt": "test", "width": 10000, "height": 512, "steps": 20},
                 "expected_valid": False,
                 "description": "Width too large"
+            }
+        ]
+    
+    @staticmethod
+    def performance_test_cases() -> List[Dict[str, Any]]:
+        """Return test cases for performance testing."""
+        return [
+            {
+                'name': 'small_batch',
+                'params': {
+                    'batch_size': 1,
+                    'num_inference_steps': 20,
+                    'width': 512,
+                    'height': 512
+                },
+                'expected_time_limit': 30.0
+            },
+            {
+                'name': 'medium_batch',
+                'params': {
+                    'batch_size': 2,
+                    'num_inference_steps': 30,
+                    'width': 768,
+                    'height': 768
+                },
+                'expected_time_limit': 60.0
+            },
+            {
+                'name': 'large_batch',
+                'params': {
+                    'batch_size': 4,
+                    'num_inference_steps': 50,
+                    'width': 1024,
+                    'height': 1024
+                },
+                'expected_time_limit': 120.0
             }
         ]
 
@@ -325,3 +394,63 @@ class MockFileSystem:
     def write_file(self, path: str, content: str):
         """Write mock file content."""
         self.files[path] = content
+
+# Create function aliases for backward compatibility
+def sample_configs():
+    """Alias for sample_configurations for backward compatibility."""
+    return list(TestFixtures.sample_configurations().values())
+
+def sample_api_requests():
+    """Alias for sample_api_requests for backward compatibility."""
+    return TestFixtures.sample_api_requests()
+
+def sample_api_responses():
+    """Alias for sample_api_responses for backward compatibility."""
+    return TestFixtures.sample_api_responses()
+
+def sample_prompts():
+    """Alias for sample_prompts for backward compatibility."""
+    return TestFixtures.sample_prompts()
+
+def validation_test_cases():
+    """Alias for validation_test_cases for backward compatibility."""
+    return TestFixtures.validation_test_cases()
+
+def performance_test_cases():
+    """Return test cases for performance testing."""
+    return [
+        {
+            'name': 'small_batch',
+            'params': {
+                'batch_size': 1,
+                'num_inference_steps': 20,
+                'width': 512,
+                'height': 512
+            },
+            'expected_time_limit': 30.0
+        },
+        {
+            'name': 'medium_batch',
+            'params': {
+                'batch_size': 2,
+                'num_inference_steps': 30,
+                'width': 768,
+                'height': 768
+            },
+            'expected_time_limit': 60.0
+        },
+        {
+            'name': 'large_batch',
+            'params': {
+                'batch_size': 4,
+                'num_inference_steps': 50,
+                'width': 1024,
+                'height': 1024
+            },
+            'expected_time_limit': 120.0
+        }
+    ]
+
+# Constants for test orchestrator compatibility
+SAMPLE_PROMPTS = TestFixtures.sample_prompts()
+SAMPLE_CONFIGS = TestFixtures.sample_configurations()

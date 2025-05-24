@@ -124,9 +124,10 @@ class TestImageGenerationAPI:
             mock_generate_image({'prompt': 'test', 'width': -1})
         assert exc_info.value.status_code == 400
         assert "Width must be positive" in str(exc_info.value.detail)
-          # Test invalid height
+        
+        # Test invalid height
         with pytest.raises(HTTPException) as exc_info:
-            mock_generate_image({'prompt': 'test', 'width': 512, 'height': 0})
+            mock_generate_image({'prompt': 'test', 'height': 0})
         assert exc_info.value.status_code == 400
         assert "Height must be positive" in str(exc_info.value.detail)
     

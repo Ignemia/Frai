@@ -275,6 +275,18 @@ class MockMemoryManager:
             "free_gb": 2.0,
             "total_gb": 4.0
         }
+    
+    def allocate_gpu_memory(self, size_mb: int):
+        """Mock GPU memory allocation."""
+        pass
+    
+    def allocate_memory(self, size_mb: int):
+        """Mock memory allocation."""
+        pass
+    
+    def deallocate_memory(self, size_mb: int):
+        """Mock memory deallocation."""
+        pass
 
 
 def assert_valid_image_result(result: Dict[str, Any]):
@@ -374,3 +386,76 @@ class TestDataGenerator:
     def invalid_steps() -> List[int]:
         """Generate list of invalid step counts."""
         return [0, -1, -10, 101, 1000]
+
+
+def create_mock_torch_device(device_type: str = "cpu"):
+    """Create a mock torch device for testing."""
+    device_mock = Mock()
+    device_mock.type = device_type
+    device_mock.index = 0 if device_type == "cuda" else None
+    device_mock.__str__ = lambda: device_type
+    device_mock.__repr__ = lambda: f"device(type='{device_type}')"
+    return device_mock
+
+
+def create_test_image(width: int = 512, height: int = 512):
+    """Create a test image object for testing."""
+    try:
+        from PIL import Image
+        import numpy as np
+        
+        # Create a simple test image
+        image_array = np.random.randint(0, 255, (height, width, 3), dtype=np.uint8)
+        image = Image.fromarray(image_array)
+        return image
+    except ImportError:
+        # If PIL not available, return a mock
+        mock_image = Mock()
+        mock_image.size = (width, height)
+        mock_image.save = Mock()
+        mock_image.show = Mock()
+        return mock_image
+
+
+class MockImageGenerationService:
+    """Mock image generation service for testing."""
+    
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        self.config = config or {}
+        self.is_initialized = False
+        self.pipeline = None
+        self.generation_count = 0
+    
+    def initialize(self) -> bool:
+        """Mock initialization."""
+        self.pipeline = MockDiffusionPipeline()
+        self.is_initialized = True
+        return True
+    
+    def generate_image(self, prompt: str, **kwargs) -> Dict[str, Any]:
+        """Mock image generation."""
+        if not self.is_initialized:
+            raise RuntimeError("Service not initialized")
+        
+        self.generation_count += 1
+        
+        return {
+            "success": True,
+            "image_path": f"/mock/path/image_{self.generation_count}.png",
+            "generation_time": 2.5,
+            "metadata": {
+                "prompt": prompt,
+                "width": kwargs.get("width", 512),
+                "height": kwargs.get("height", 512),
+                "num_inference_steps": kwargs.get("steps", 20),
+                "guidance_scale": kwargs.get("guidance_scale", 7.5)
+            }        }
+    
+    def generate_batch(self, prompts: List[str], **kwargs) -> List[Dict[str, Any]]:
+        """Mock batch generation."""
+        return [self.generate_image(prompt, **kwargs) for prompt in prompts]
+    
+    def cleanup(self):
+        """Mock cleanup."""
+        self.is_initialized = False
+        self.pipeline = None

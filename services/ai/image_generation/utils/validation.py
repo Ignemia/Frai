@@ -159,3 +159,36 @@ def sanitize_prompt(prompt: str) -> str:
         prompt = prompt[:1000].rsplit(' ', 1)[0]  # Cut at word boundary
     
     return prompt.strip()
+
+
+def validate_generation_params(
+    prompt: str,
+    height: int, 
+    width: int, 
+    steps: int, 
+    guidance_scale: float = 7.5
+) -> Tuple[bool, str]:
+    """
+    Validate all generation parameters including prompt.
+    
+    Args:
+        prompt: The text prompt to validate
+        height: Image height in pixels
+        width: Image width in pixels
+        steps: Number of inference steps
+        guidance_scale: Guidance scale value
+        
+    Returns:
+        Tuple of (is_valid: bool, message: str)
+    """
+    # Validate prompt first
+    prompt_valid, prompt_message, _ = validate_prompt(prompt)
+    if not prompt_valid:
+        return False, f"Prompt validation failed: {prompt_message}"
+    
+    # Validate generation parameters
+    params_valid, params_message = validate_generation_parameters(height, width, steps, guidance_scale)
+    if not params_valid:
+        return False, f"Parameter validation failed: {params_message}"
+    
+    return True, "All parameters are valid"
