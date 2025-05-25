@@ -9,7 +9,7 @@ text, image, and voice preprocessing operations.
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Any, Union, Tuple
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 import uuid
 
 
@@ -132,9 +132,10 @@ class ExtractedEntity(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
-    @validator('end_pos')
-    def end_after_start(cls, v, values):
-        if 'start_pos' in values and v <= values['start_pos']:
+    @field_validator('end_pos')
+    @classmethod
+    def end_after_start(cls, v, info):
+        if 'start_pos' in info.data and v <= info.data['start_pos']:
             raise ValueError('end_pos must be greater than start_pos')
         return v
 
@@ -214,9 +215,10 @@ class ResizeOptions(BaseModel):
     maintain_aspect_ratio: bool = True
     interpolation: str = "lanczos"  # "nearest", "bilinear", "bicubic", "lanczos"
     
-    @validator('height')
-    def at_least_one_dimension(cls, v, values):
-        if v is None and values.get('width') is None:
+    @field_validator('height')
+    @classmethod
+    def at_least_one_dimension(cls, v, info):
+        if v is None and info.data.get('width') is None:
             raise ValueError('At least one of width or height must be specified')
         return v
 
@@ -286,13 +288,13 @@ class ImageProcessingRequest(BaseProcessingRequest):
     flip_vertical: bool = False
     quality: int = Field(default=95, ge=1, le=100)
 
-    @validator('image_data', 'image_path', 'image_url')
-    def at_least_one_image_source(cls, v, values, field):
-        sources = [values.get('image_data'), values.get('image_path'), values.get('image_url')]
+    @model_validator(mode='after')
+    def at_least_one_image_source(self):
+        sources = [self.image_data, self.image_path, self.image_url]
         non_none_sources = [s for s in sources if s is not None]
         if len(non_none_sources) != 1:
             raise ValueError('Exactly one of image_data, image_path, or image_url must be provided')
-        return v
+        return self
 
 
 class ImageProcessingResult(BaseModel):
@@ -370,9 +372,10 @@ class VoiceActivitySegment(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     is_speech: bool
     
-    @validator('end_time')
-    def end_after_start(cls, v, values):
-        if 'start_time' in values and v <= values['start_time']:
+    @field_validator('end_time')
+    @classmethod
+    def end_after_start(cls, v, info):
+        if 'start_time' in info.data and v <= info.data['start_time']:
             raise ValueError('end_time must be greater than start_time')
         return v
 
@@ -384,9 +387,10 @@ class SpeakerSegment(BaseModel):
     speaker_id: str
     confidence: float = Field(ge=0.0, le=1.0)
     
-    @validator('end_time')
-    def end_after_start(cls, v, values):
-        if 'start_time' in values and v <= values['start_time']:
+    @field_validator('end_time')
+    @classmethod
+    def end_after_start(cls, v, info):
+        if 'start_time' in info.data and v <= info.data['start_time']:
             raise ValueError('end_time must be greater than start_time')
         return v
 
@@ -421,13 +425,13 @@ class VoiceProcessingRequest(BaseProcessingRequest):
     pitch_semitones: float = Field(default=0.0, ge=-12.0, le=12.0)
     amplification_db: float = Field(default=0.0, ge=-30.0, le=30.0)
     
-    @validator('audio_data', 'audio_path', 'audio_url')
-    def at_least_one_audio_source(cls, v, values, field):
-        sources = [values.get('audio_data'), values.get('audio_path'), values.get('audio_url')]
+    @model_validator(mode='after')
+    def at_least_one_audio_source(self):
+        sources = [self.audio_data, self.audio_path, self.audio_url]
         non_none_sources = [s for s in sources if s is not None]
         if len(non_none_sources) != 1:
             raise ValueError('Exactly one of audio_data, audio_path, or audio_url must be provided')
-        return v
+        return self
 
 
 class VoiceProcessingResult(BaseModel):

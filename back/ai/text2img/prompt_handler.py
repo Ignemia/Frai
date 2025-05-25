@@ -7,7 +7,7 @@ for more complex prompt engineering if needed.
 """
 
 import logging
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 
 # from langchain.prompts import PromptTemplate # Example for LangChain integration
 

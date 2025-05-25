@@ -9,7 +9,7 @@ the orchestrator and test layers.
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Any, Union
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from pathlib import Path
 
 
@@ -206,9 +206,10 @@ class VoiceSegment(BaseModel):
     speaker_id: Optional[str] = None
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     
-    @validator('end_time')
-    def end_after_start(cls, v, values):
-        if 'start_time' in values and v <= values['start_time']:
+    @field_validator('end_time')
+    @classmethod
+    def end_after_start(cls, v, info):
+        if 'start_time' in info.data and v <= info.data['start_time']:
             raise ValueError('end_time must be greater than start_time')
         return v
 

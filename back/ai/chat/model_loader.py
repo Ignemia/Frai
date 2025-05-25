@@ -6,26 +6,26 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 logger = logging.getLogger(__name__)
 
 def load_model_and_tokenizer(model_name_or_path: str, model_path: str):
-    """Loads the model and tokenizer into RAM."""
+    """Loads the model and tokenizer into RAM using the resolved model path."""
     try:
-        logger.info(f"Loading chat model: {model_name_or_path}")
+        logger.info(f"Loading chat model from: {model_path}")
         device = "cpu"  # Always load to RAM initially
         logger.info(f"Using device for initial load: {device}")
 
-        tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+        tokenizer = AutoTokenizer.from_pretrained(model_path)
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
         model = AutoModelForCausalLM.from_pretrained(
-            model_name_or_path,
+            model_path,
             torch_dtype=torch.float32, # Use float32 for CPU
             trust_remote_code=True
             # device_map cannot be 'auto' when loading to CPU explicitly
         )
-        logger.info("Chat model and tokenizer loaded to RAM successfully")
+        logger.info(f"Chat model and tokenizer loaded to RAM successfully from {model_path}")
         return model, tokenizer
     except Exception as e:
-        logger.error(f"Failed to load chat model to RAM: {e}")
+        logger.error(f"Failed to load chat model from {model_path}: {e}")
         return None, None
 
 def get_generation_pipeline(model, tokenizer, device: str):

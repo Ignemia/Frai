@@ -19,6 +19,7 @@ import torch
 
 from .pipeline import load_flux_text2img_pipeline, run_flux_text2img_pipeline, get_flux_text2img_pipeline_components
 from .prompt_handler import format_text2img_prompt
+from ..model_config import get_text2img_model_path, get_model_path
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +31,18 @@ class Text2ImgAI:
     For generation, it's moved to VRAM (if available) and then back to RAM.
     """
     
-    def __init__(self, model_name: str = "FLUX.1-text2img", model_path: str = "models/FLUX.1-dev"):
-        self.model_name = model_name # Specify it's for text2img variant if applicable
-        self.model_path = model_path
+    def __init__(self, model_name: Optional[str] = None, model_path: Optional[str] = None):
+        # Resolve model path using configuration
+        if model_name is None:
+            self.model_path = get_text2img_model_path()
+            self.model_name = "black-forest-labs/FLUX.1-dev"  # Keep original name for identification
+        else:
+            self.model_path, _ = get_model_path(model_name)
+            self.model_name = model_name
+        
+        # Override with explicit model_path if provided
+        if model_path is not None:
+            self.model_path = model_path
         self.pipeline = None # This will hold the FLUX.1 text-to-image pipeline
         self.is_loaded = False
         self.vram_device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -171,14 +181,12 @@ _text2img_ai_instance: Optional[Text2ImgAI] = None
 
 def get_text2img_ai_instance(model_name: Optional[str] = None, model_path: Optional[str] = None) -> Text2ImgAI:
     global _text2img_ai_instance
-    default_model_name = "FLUX.1-text2img"
-    default_model_path = "models/FLUX.1-dev"
 
     if _text2img_ai_instance is None:
         logger.info("Initializing global Text2ImgAI instance.")
         _text2img_ai_instance = Text2ImgAI(
-            model_name=model_name if model_name else default_model_name,
-            model_path=model_path if model_path else default_model_path
+            model_name=model_name,
+            model_path=model_path
         )
     elif model_name and (_text2img_ai_instance.model_name != model_name or \
                         (model_path and _text2img_ai_instance.model_path != model_path)):

@@ -287,7 +287,7 @@ class UserDB(BaseModel):
     """User as stored in database"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     username: str = Field(min_length=3, max_length=50)
-    email: str = Field(regex=r'^[^@]+@[^@]+\.[^@]+$')
+    email: str = Field(pattern=r'^[^@]+@[^@]+\.[^@]+$')
     password_hash: str
     role: UserRole = UserRole.USER
     status: UserStatus = UserStatus.ACTIVE

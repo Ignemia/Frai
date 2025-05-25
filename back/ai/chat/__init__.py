@@ -18,6 +18,7 @@ from .model_loader import (
     get_generation_pipeline
 )
 from .text_generator import generate_text
+from ..model_config import get_chat_model_path, get_model_path
 # Removed: from .orchestration import process_chat_message as process_chat_message_orchestrated, format_conversation_for_model
 
 logger = logging.getLogger(__name__)
@@ -28,10 +29,19 @@ class ChatAI:
     The model is loaded into RAM on initialization.
     For generation, it's moved to VRAM (if available) and then back to RAM.
     """
-    
-    def __init__(self, model_name: str = "google/gemma-3-4b-it", model_path: str = "models/gemma-3-4b-it"):
-        self.model_name = model_name
-        self.model_path = model_path
+
+    def __init__(self, model_name: Optional[str] = None, model_path: Optional[str] = None):
+        # Resolve model path using configuration
+        if model_name is None:
+            self.model_path = get_chat_model_path()
+            self.model_name = "google/gemma-3-4b-it"  # Keep original name for identification
+        else:
+            self.model_path, _ = get_model_path(model_name)
+            self.model_name = model_name
+        
+        # Override with explicit model_path if provided
+        if model_path is not None:
+            self.model_path = model_path
         self.model = None
         self.tokenizer = None
         self.is_loaded = False
@@ -45,7 +55,7 @@ class ChatAI:
             "repetition_penalty": 1.1,
             "max_new_tokens": 8192
         }
-        
+
         self.positive_system_prompt_template = os.getenv("POSITIVE_SYSTEM_PROMPT_CHAT", "Be helpful and answer concisely.")
         self.negative_system_prompt_template = os.getenv("NEGATIVE_SYSTEM_PROMPT_CHAT", "Do not use offensive language.")
 
@@ -70,8 +80,8 @@ class ChatAI:
 
     @staticmethod
     def format_conversation_for_model(
-        messages: List[Dict[str, str]], 
-        positive_system_prompt: str, 
+        messages: List[Dict[str, str]],
+        positive_system_prompt: str,
         negative_system_prompt: str
     ) -> str:
         """
@@ -80,7 +90,7 @@ class ChatAI:
         formatted_messages_list = []
         system_prompt_content = f"YOU SHOULD FOLLOW THESE INSTRUCTIONS:`{positive_system_prompt}\n\nYOU SOULD NEVER DO THESE THINGS:{negative_system_prompt}`"
         formatted_messages_list.append(f"System: {system_prompt_content}")
-        
+
         for message in messages:
             role = message.get("role", "user")
             content = message.get("content", "")
@@ -101,7 +111,7 @@ class ChatAI:
         """
         Generates an AI response based on conversation history and system prompts.
         Manages device VRAM/RAM transfers for the model.
-        
+
         Args:
             conversation_history: List of message dicts [{"role": "user/assistant", "content": "..."}].
             positive_system_prompt_override: Optional override for the positive system prompt.
@@ -136,7 +146,7 @@ class ChatAI:
                 raise RuntimeError(f"Failed to create generation pipeline on {target_device_for_generation}.")
 
             logger.info(f"Generating response on {target_device_for_generation}...")
-            
+
             generation_config = self.generation_params.copy()
             current_max_tokens = max_new_tokens if max_new_tokens is not None else generation_config["max_new_tokens"]
             generation_config["max_new_tokens"] = current_max_tokens
@@ -148,12 +158,12 @@ class ChatAI:
                 generation_params=generation_config,
                 max_new_tokens=current_max_tokens
             )
-            
+
             if gen_result["success"]:
                  gen_result["metadata"]["model_name"] = self.model_name
                  gen_result["metadata"]["device_used"] = target_device_for_generation
             return gen_result
-        
+
         except Exception as e:
             logger.error(f"Error during generation with device handling: {e}")
             import traceback
@@ -180,10 +190,10 @@ def get_chat_ai_instance(model_name: Optional[str] = None, model_path: Optional[
     if _chat_ai_instance is None:
         logger.info("Initializing global ChatAI instance.")
         _chat_ai_instance = ChatAI(
-            model_name=model_name if model_name else "google/gemma-3-4b-it",
-            model_path=model_path if model_path else "models/gemma-3-4b-it"
+            model_name=model_name,
+            model_path=model_path
         )
-    elif model_name and (_chat_ai_instance.model_name != model_name or 
+    elif model_name and (_chat_ai_instance.model_name != model_name or
                         (model_path and _chat_ai_instance.model_path != model_path)):
         logger.warning(
             f"Requesting ChatAI with new model/path {model_name}/{model_path}, but instance with "
@@ -191,6 +201,12 @@ def get_chat_ai_instance(model_name: Optional[str] = None, model_path: Optional[
         )
         _chat_ai_instance = ChatAI(model_name=model_name, model_path=model_path)
     return _chat_ai_instance
+
+def load_chat_model(model_name: Optional[str] = None, model_path: Optional[str] = None) -> bool:
+    """
+    Load the chat model. This is an alias for initialize_chat_system for compatibility.
+    """
+    return initialize_chat_system(model_name, model_path)
 
 def initialize_chat_system(model_name: Optional[str] = None, model_path: Optional[str] = None) -> bool:
     try:
@@ -211,15 +227,15 @@ def initialize_chat_system(model_name: Optional[str] = None, model_path: Optiona
 # These endpoint functions are how other layers (like an orchestrator or API layer) would interact with the AI.
 def generate_ai_text(
     conversation_history: List[Dict[str, str]],
-    positive_system_prompt: Optional[str] = None, 
-    negative_system_prompt: Optional[str] = None, 
+    positive_system_prompt: Optional[str] = None,
+    negative_system_prompt: Optional[str] = None,
     max_new_tokens: Optional[int] = None
 ) -> Dict[str, Any]:
     """
     High-level function to generate AI text based on conversation history and optional system prompts.
     This is intended to be called by the layer above (e.g., Orchestrator).
     """
-    chat_ai = get_chat_ai_instance() 
+    chat_ai = get_chat_ai_instance()
     if not chat_ai.is_loaded:
          return {"success": False, "error": "Chat model not ready or failed to load.", "response": ""}
     return chat_ai.generate_response(
