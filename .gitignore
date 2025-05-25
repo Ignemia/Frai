@@ -12,6 +12,8 @@ secret.env
 
 # Python
 __pycache__/
+.pytest*
+.benchmarks*
 *.py[cod]
 *$py.class
 *.so
@@ -57,3 +59,8 @@ frai/**/*
 
 # old structure
 old*
+*output*
+*.out
+*.output
+*.log
+*.log.*

@@ -1,345 +1,230 @@
 """
 Backend AI Chat Module
 
-This module handles the AI chat functionality, including model loading,
-text generation, and integration with the chat orchestrator and moderator.
+This module defines the main ChatAI class that orchestrates model loading,
+text generation, and device management (RAM/VRAM transfer).
+It exports the ChatAI class and utility functions for accessing it.
 """
 
 import logging
 import os
-from typing import Dict, Optional, List, Any
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+from typing import Dict, Optional, Any, List
 import torch
-from datetime import datetime
+
+# Local imports from the new modules
+from .model_loader import (
+    load_model_and_tokenizer,
+    move_model_to_device,
+    get_generation_pipeline
+)
+from .text_generator import generate_text
+# Removed: from .orchestration import process_chat_message as process_chat_message_orchestrated, format_conversation_for_model
 
 logger = logging.getLogger(__name__)
 
 class ChatAI:
     """
-    AI chat handler that integrates with chat orchestrator and moderator.
+    AI chat handler that coordinates model loading, generation, and device management.
+    The model is loaded into RAM on initialization.
+    For generation, it's moved to VRAM (if available) and then back to RAM.
     """
     
-    def __init__(self):
+    def __init__(self, model_name: str = "google/gemma-3-4b-it", model_path: str = "models/gemma-3-4b-it"):
+        self.model_name = model_name
+        self.model_path = model_path
         self.model = None
         self.tokenizer = None
-        self.generation_pipeline = None
         self.is_loaded = False
-        self.model_name = "google/gemma-3-4b-it"  # Default model
-        self.max_length = 2048
-        self.temperature = 0.8
-        self.top_p = 0.95
-        self.top_k = 50
+        self.vram_device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.ram_device = "cpu"
+
+        self.generation_params = {
+            "temperature": 0.7,
+            "top_p": 0.95,
+            "top_k": 50,
+            "repetition_penalty": 1.1,
+            "max_new_tokens": 8192
+        }
         
-        # System prompts from environment
-        self.positive_system_prompt = os.getenv(
-            "POSITIVE_SYSTEM_PROMPT_CHAT", 
-            "You are a helpful and friendly AI assistant."
-        )
-        self.negative_system_prompt = os.getenv(
-            "NEGATIVE_SYSTEM_PROMPT_CHAT",
-            "Do not provide harmful, illegal, or inappropriate content."
-        )
-    
-    def load_model(self, model_path: Optional[str] = None) -> bool:
-        """
-        Load the chat model and tokenizer.
-        
-        Args:
-            model_path: Optional path to local model, otherwise uses default
-            
-        Returns:
-            True if loaded successfully, False otherwise
-        """
-        try:
-            if model_path:
-                self.model_name = model_path
-            
-            logger.info(f"Loading chat model: {self.model_name}")
-            
-            # Check if CUDA is available
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            logger.info(f"Using device: {device}")
-            
-            # Load tokenizer
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-            
-            # Set pad token if not set
-            if self.tokenizer.pad_token is None:
-                self.tokenizer.pad_token = self.tokenizer.eos_token
-            
-            # Load model with appropriate settings
-            model_kwargs = {
-                "torch_dtype": torch.float16 if device == "cuda" else torch.float32,
-                "device_map": "auto" if device == "cuda" else None,
-                "trust_remote_code": True
-            }
-            
-            self.model = AutoModelForCausalLM.from_pretrained(
-                self.model_name, 
-                **model_kwargs
-            )
-            
-            # Create generation pipeline
-            self.generation_pipeline = pipeline(
-                "text-generation",
-                model=self.model,
-                tokenizer=self.tokenizer,
-                device=0 if device == "cuda" else -1,
-                torch_dtype=torch.float16 if device == "cuda" else torch.float32
-            )
-            
+        self.positive_system_prompt_template = os.getenv("POSITIVE_SYSTEM_PROMPT_CHAT", "Be helpful and answer concisely.")
+        self.negative_system_prompt_template = os.getenv("NEGATIVE_SYSTEM_PROMPT_CHAT", "Do not use offensive language.")
+
+        self._load_model_to_ram()
+
+    def _load_model_to_ram(self):
+        logger.info(f"Attempting to load model {self.model_name} to RAM.")
+        self.model, self.tokenizer = load_model_and_tokenizer(self.model_name, self.model_path)
+        if self.model and self.tokenizer:
             self.is_loaded = True
-            logger.info("Chat model loaded successfully")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to load chat model: {e}")
+            logger.info(f"Model {self.model_name} and tokenizer loaded to RAM successfully.")
+        else:
             self.is_loaded = False
+            logger.error(f"Failed to load model {self.model_name} to RAM.")
+            raise RuntimeError(f"Could not load model {self.model_name} to RAM.")
+
+    def _ensure_model_on_device(self, target_device: str) -> bool:
+        if not self.is_loaded or self.model is None:
+            logger.error("Model not loaded, cannot move device.")
             return False
-    
-    def format_conversation(self, messages: List[Dict[str, str]]) -> str:
+        return move_model_to_device(self.model, target_device)
+
+    @staticmethod
+    def format_conversation_for_model(
+        messages: List[Dict[str, str]], 
+        positive_system_prompt: str, 
+        negative_system_prompt: str
+    ) -> str:
         """
-        Format conversation messages for the model.
-        
-        Args:
-            messages: List of message dictionaries with 'role' and 'content'
-            
-        Returns:
-            Formatted conversation string
+        Format conversation messages for the model, including system prompts.
         """
-        formatted_messages = []
+        formatted_messages_list = []
+        system_prompt_content = f"YOU SHOULD FOLLOW THESE INSTRUCTIONS:`{positive_system_prompt}\n\nYOU SOULD NEVER DO THESE THINGS:{negative_system_prompt}`"
+        formatted_messages_list.append(f"System: {system_prompt_content}")
         
-        # Add system prompt
-        system_prompt = f"{self.positive_system_prompt}\n\n{self.negative_system_prompt}"
-        formatted_messages.append(f"System: {system_prompt}")
-        
-        # Add conversation messages
         for message in messages:
             role = message.get("role", "user")
             content = message.get("content", "")
-            
             if role == "user":
-                formatted_messages.append(f"User: {content}")
+                formatted_messages_list.append(f"User: {content}")
             elif role == "assistant":
-                formatted_messages.append(f"Assistant: {content}")
-        
-        # Add prompt for assistant response
-        formatted_messages.append("Assistant:")
-        
-        return "\n".join(formatted_messages)
-    
-    def generate_response(self, conversation_context: str, 
-                         max_new_tokens: int = 256) -> Dict[str, Any]:
+                formatted_messages_list.append(f"Assistant: {content}")
+        formatted_messages_list.append("Assistant:")
+        return "\n".join(formatted_messages_list)
+
+    def generate_response(
+        self,
+        conversation_history: List[Dict[str, str]],
+        positive_system_prompt_override: Optional[str] = None,
+        negative_system_prompt_override: Optional[str] = None,
+        max_new_tokens: Optional[int] = None
+    ) -> Dict[str, Any]:
         """
-        Generate an AI response to the conversation.
+        Generates an AI response based on conversation history and system prompts.
+        Manages device VRAM/RAM transfers for the model.
         
         Args:
-            conversation_context: Formatted conversation context
-            max_new_tokens: Maximum number of new tokens to generate
-            
+            conversation_history: List of message dicts [{"role": "user/assistant", "content": "..."}].
+            positive_system_prompt_override: Optional override for the positive system prompt.
+            negative_system_prompt_override: Optional override for the negative system prompt.
+            max_new_tokens: Optional override for max_new_tokens for this specific generation.
+
         Returns:
-            Dictionary with generation results
+            Dictionary with generation results, including "response", "success", "error", "metadata".
         """
-        if not self.is_loaded:
-            return {
-                "success": False,
-                "error": "Model not loaded",
-                "response": "",
-                "metadata": {}
-            }
-        
+        if not self.is_loaded or self.model is None or self.tokenizer is None:
+            return {"success": False, "error": "Model not loaded", "response": "", "metadata": {}}
+
+        current_pipeline = None
+        target_device_for_generation = self.vram_device
+
+        final_positive_prompt = positive_system_prompt_override if positive_system_prompt_override else self.positive_system_prompt_template
+        final_negative_prompt = negative_system_prompt_override if negative_system_prompt_override else self.negative_system_prompt_template
+
+        conversation_context = self.format_conversation_for_model(
+            messages=conversation_history,
+            positive_system_prompt=final_positive_prompt,
+            negative_system_prompt=final_negative_prompt
+        )
+
         try:
-            logger.info("Generating AI response...")
-            start_time = datetime.now()
+            if not self._ensure_model_on_device(target_device_for_generation):
+                raise RuntimeError(f"Failed to move model to {target_device_for_generation}.")
+
+            logger.info(f"Creating/getting pipeline on {target_device_for_generation}")
+            current_pipeline = get_generation_pipeline(self.model, self.tokenizer, target_device_for_generation)
+            if not current_pipeline:
+                raise RuntimeError(f"Failed to create generation pipeline on {target_device_for_generation}.")
+
+            logger.info(f"Generating response on {target_device_for_generation}...")
             
-            # Generation parameters
-            generation_kwargs = {
-                "max_new_tokens": max_new_tokens,
-                "do_sample": True,
-                "temperature": self.temperature,
-                "top_p": self.top_p,
-                "top_k": self.top_k,
-                "repetition_penalty": 1.1,
-                "pad_token_id": self.tokenizer.eos_token_id,
-                "eos_token_id": self.tokenizer.eos_token_id,
-                "return_full_text": False
-            }
-            
-            # Generate response
-            outputs = self.generation_pipeline(
-                conversation_context,
-                **generation_kwargs
+            generation_config = self.generation_params.copy()
+            current_max_tokens = max_new_tokens if max_new_tokens is not None else generation_config["max_new_tokens"]
+            generation_config["max_new_tokens"] = current_max_tokens
+
+            gen_result = generate_text(
+                generation_pipeline=current_pipeline,
+                tokenizer=self.tokenizer,
+                conversation_context=conversation_context,
+                generation_params=generation_config,
+                max_new_tokens=current_max_tokens
             )
             
-            # Extract generated text
-            generated_text = outputs[0]["generated_text"] if outputs else ""
-            
-            # Clean up the response
-            generated_text = generated_text.strip()
-            
-            # Remove any remaining prompt artifacts
-            if generated_text.startswith("Assistant:"):
-                generated_text = generated_text[10:].strip()
-            
-            generation_time = (datetime.now() - start_time).total_seconds()
-            
-            result = {
-                "success": True,
-                "response": generated_text,
-                "error": None,
-                "metadata": {
-                    "generation_time": generation_time,
-                    "max_new_tokens": max_new_tokens,
-                    "temperature": self.temperature,
-                    "model_name": self.model_name
-                }
-            }
-            
-            logger.info(f"Response generated successfully in {generation_time:.2f}s")
-            return result
-            
+            if gen_result["success"]:
+                 gen_result["metadata"]["model_name"] = self.model_name
+                 gen_result["metadata"]["device_used"] = target_device_for_generation
+            return gen_result
+        
         except Exception as e:
-            logger.error(f"Error generating response: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "response": "",
-                "metadata": {}
-            }
-    
-    def chat_with_session(self, session_id: str, user_message: str, 
-                         user_id: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Process a chat message within a session context.
-        
-        Args:
-            session_id: Chat session ID
-            user_message: User's message
-            user_id: Optional user ID
-            
-        Returns:
-            Complete chat result with orchestrator and moderator integration
-        """
-        # Import here to avoid circular imports
-        from orchestrator.chat import get_chat_orchestrator, MessageType
-        from orchestrator.chatmod import moderate_user_message, filter_ai_response
-        
-        result = {
-            "success": False,
-            "user_message": user_message,
-            "ai_response": "",
-            "session_id": session_id,
-            "moderation": {},
-            "filtering": {},
-            "error": None
-        }
-        
-        try:
-            orchestrator = get_chat_orchestrator()
-            
-            # Check if session exists
-            session = orchestrator.get_chat_session(session_id)
-            if not session:
-                result["error"] = f"Session {session_id} not found"
-                return result
-            
-            # Moderate user message
-            moderation_result = moderate_user_message(user_message, user_id)
-            result["moderation"] = moderation_result
-            
-            if not moderation_result.get("approved", False):
-                result["error"] = "Message rejected by moderation"
-                return result
-            
-            # Add user message to session
-            user_msg = orchestrator.add_message(
-                session_id, MessageType.USER, user_message, user_id
-            )
-            
-            # Get conversation context
-            messages = orchestrator.get_session_messages(session_id, limit=20)
-            
-            # Format messages for AI
-            formatted_messages = []
-            for msg in messages:
-                if msg.message_type == MessageType.USER:
-                    formatted_messages.append({"role": "user", "content": msg.content})
-                elif msg.message_type == MessageType.ASSISTANT:
-                    formatted_messages.append({"role": "assistant", "content": msg.content})
-            
-            conversation_context = self.format_conversation(formatted_messages)
-            
-            # Generate AI response
-            generation_result = self.generate_response(conversation_context)
-            
-            if not generation_result["success"]:
-                result["error"] = generation_result["error"]
-                return result
-            
-            ai_response = generation_result["response"]
-            
-            # Filter AI response
-            filtering_result = filter_ai_response(ai_response)
-            result["filtering"] = filtering_result
-            
-            if filtering_result.get("approved", False):
-                final_response = filtering_result.get("filtered_response", ai_response)
-                
-                # Add AI response to session
-                orchestrator.add_message(
-                    session_id, MessageType.ASSISTANT, final_response
-                )
-                
-                result["ai_response"] = final_response
-                result["success"] = True
-                
-                logger.info(f"Chat completed successfully for session {session_id}")
-            else:
-                result["error"] = "AI response rejected by filtering"
-                result["ai_response"] = "I apologize, but I cannot provide a response to that."
-            
-        except Exception as e:
-            logger.error(f"Error in chat processing: {e}")
-            result["error"] = str(e)
-        
-        return result
+            logger.error(f"Error during generation with device handling: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return {"success": False, "error": str(e), "response": "", "metadata": {}}
+        finally:
+            logger.info(f"Attempting to move model back to {self.ram_device}.")
+            if self.model is not None:
+                if not self._ensure_model_on_device(self.ram_device):
+                    logger.error(f"CRITICAL: Failed to move model back to {self.ram_device} after generation.")
+                else:
+                    logger.info(f"Model successfully moved back to {self.ram_device}.")
+            if target_device_for_generation == "cuda" and current_pipeline is not None:
+                logger.info("Clearing VRAM generation pipeline and emptying cache.")
+                del current_pipeline
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
+# --- Global Instance and Accessor Functions ---
+_chat_ai_instance: Optional[ChatAI] = None
 
-# Global chat AI instance
-_chat_ai = None
+def get_chat_ai_instance(model_name: Optional[str] = None, model_path: Optional[str] = None) -> ChatAI:
+    global _chat_ai_instance
+    if _chat_ai_instance is None:
+        logger.info("Initializing global ChatAI instance.")
+        _chat_ai_instance = ChatAI(
+            model_name=model_name if model_name else "google/gemma-3-4b-it",
+            model_path=model_path if model_path else "models/gemma-3-4b-it"
+        )
+    elif model_name and (_chat_ai_instance.model_name != model_name or 
+                        (model_path and _chat_ai_instance.model_path != model_path)):
+        logger.warning(
+            f"Requesting ChatAI with new model/path {model_name}/{model_path}, but instance with "
+            f"{_chat_ai_instance.model_name}/{_chat_ai_instance.model_path} exists. Re-initializing."
+        )
+        _chat_ai_instance = ChatAI(model_name=model_name, model_path=model_path)
+    return _chat_ai_instance
 
-def get_chat_ai() -> ChatAI:
-    """Get the global chat AI instance."""
-    global _chat_ai
-    if _chat_ai is None:
-        _chat_ai = ChatAI()
-    return _chat_ai
-
-def load_chat_model(model_path: Optional[str] = None) -> bool:
-    """Load the chat model."""
+def initialize_chat_system(model_name: Optional[str] = None, model_path: Optional[str] = None) -> bool:
     try:
-        logger.info("Loading chat model...")
-        chat_ai = get_chat_ai()
-        success = chat_ai.load_model(model_path)
-        if success:
-            logger.info("Chat model loaded successfully.")
+        logger.info("Initializing chat system...")
+        chat_ai = get_chat_ai_instance(model_name, model_path)
+        if chat_ai.is_loaded:
+            logger.info("Chat system initialized successfully. Model is in RAM.")
+            return True
         else:
-            logger.error("Failed to load chat model.")
-        return success
+            logger.error("Chat system initialization failed. Model could not be loaded.")
+            return False
     except Exception as e:
-        logger.error(f"Error loading chat model: {e}")
+        logger.error(f"Error during chat system initialization: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return False
 
-def chat_completion(session_id: str, message: str, 
-                   user_id: Optional[str] = None) -> Dict[str, Any]:
-    """Complete chat interaction with moderation and orchestration."""
-    return get_chat_ai().chat_with_session(session_id, message, user_id)
-
-def generate_text_response(prompt: str, max_tokens: int = 256) -> str:
-    """Generate a simple text response without session context."""
-    chat_ai = get_chat_ai()
+# These endpoint functions are how other layers (like an orchestrator or API layer) would interact with the AI.
+def generate_ai_text(
+    conversation_history: List[Dict[str, str]],
+    positive_system_prompt: Optional[str] = None, 
+    negative_system_prompt: Optional[str] = None, 
+    max_new_tokens: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    High-level function to generate AI text based on conversation history and optional system prompts.
+    This is intended to be called by the layer above (e.g., Orchestrator).
+    """
+    chat_ai = get_chat_ai_instance() 
     if not chat_ai.is_loaded:
-        return "Chat model not loaded"
-    
-    result = chat_ai.generate_response(prompt, max_tokens)
-    return result.get("response", "Error generating response")
+         return {"success": False, "error": "Chat model not ready or failed to load.", "response": ""}
+    return chat_ai.generate_response(
+        conversation_history=conversation_history,
+        positive_system_prompt_override=positive_system_prompt,
+        negative_system_prompt_override=negative_system_prompt,
+        max_new_tokens=max_new_tokens
+    )
