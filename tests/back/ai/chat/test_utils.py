@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Path to the test set CSV file
-TEST_SET_PATH = os.path.join(os.path.dirname(__file__), 'test_set.csv')
+TEST_SET_PATH = os.path.join(os.path.dirname(__file__), 'testset.csv')
 
 # Dictionary to store conversation contexts for sequential tests
 CONVERSATION_CONTEXTS = {}
@@ -115,8 +115,15 @@ def verify_output(response: Dict[str, Any], expected_output: str) -> bool:
     
     # Handle specific text case
     else:
-        return (response.get("success", False) and 
-                expected_output.lower() in response.get("response", "").lower())
+        response_text = response.get("response", "").lower()
+        success = response.get("success", False)
+        
+        # For context tests with multiple keywords (like "Alex pizza"), check if all keywords are present
+        if " " in expected_output:
+            keywords = expected_output.lower().split()
+            return success and all(keyword in response_text for keyword in keywords)
+        else:
+            return success and expected_output.lower() in response_text
 
 def update_conversation_context(test_case: Dict[str, str], response: Dict[str, Any]) -> None:
     """

@@ -8,7 +8,7 @@ This module contains tests for the chat AI system, organized into different cate
 - Content generation tests (controversial topics, code, languages)
 
 Each test category is in its own module. The tests use a common framework defined in test_utils.py
-and test cases from test_set.csv.
+and test cases from testset.csv.
 
 To run all tests:
     pytest -xvs Frai/tests/back/ai/chat/
@@ -25,9 +25,9 @@ import pytest
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../')))
 
 # Import test utilities (available to other modules)
-from test_utils import (
+from .test_utils import (
     load_test_cases,
-    clear_conversation_contexts, 
+    clear_conversation_contexts,
     build_conversation_history,
     verify_output,
     update_conversation_context,

@@ -45,16 +45,27 @@ class ChatAI:
         self.model = None
         self.tokenizer = None
         self.is_loaded = False
-        self.vram_device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.ram_device = "cpu"
+        
+        # Device configuration with explicit GPU detection
+        self.cuda_available = torch.cuda.is_available()
+        self.uses_distributed_model = False  # Will be set after model loading
+        
+        # Log device configuration
+        if self.cuda_available:
+            logger.info(f"CUDA available: Partial GPU offloading will be used. Device count: {torch.cuda.device_count()}")
+            logger.info(f"GPU device: {torch.cuda.get_device_name(0) if torch.cuda.device_count() > 0 else 'Unknown'}")
+        else:
+            logger.warning("CUDA not available: All operations will run on CPU")
 
         self.generation_params = {
             "temperature": 0.7,
             "top_p": 0.95,
             "top_k": 50,
             "repetition_penalty": 1.1,
-            "max_new_tokens": 8192
+            "max_new_tokens": 50
         }
+        
+        # Add flag
 
         self.positive_system_prompt_template = os.getenv("POSITIVE_SYSTEM_PROMPT_CHAT", "Be helpful and answer concisely.")
         self.negative_system_prompt_template = os.getenv("NEGATIVE_SYSTEM_PROMPT_CHAT", "Do not use offensive language.")
@@ -62,42 +73,93 @@ class ChatAI:
         self._load_model_to_ram()
 
     def _load_model_to_ram(self):
-        logger.info(f"Attempting to load model {self.model_name} to RAM.")
+        logger.info(f"Attempting to load model {self.model_name} with optimal device mapping.")
         self.model, self.tokenizer = load_model_and_tokenizer(self.model_name, self.model_path)
         if self.model and self.tokenizer:
             self.is_loaded = True
-            logger.info(f"Model {self.model_name} and tokenizer loaded to RAM successfully.")
+            # Check if model is distributed across devices
+            if hasattr(self.model, 'hf_device_map'):
+                self.uses_distributed_model = True
+                logger.info(f"Model {self.model_name} loaded with distributed device mapping.")
+                logger.info(f"Device distribution: {dict(self.model.hf_device_map)}")
+            else:
+                self.uses_distributed_model = False
+                device = next(self.model.parameters()).device
+                logger.info(f"Model {self.model_name} loaded to single device: {device}")
         else:
             self.is_loaded = False
-            logger.error(f"Failed to load model {self.model_name} to RAM.")
-            raise RuntimeError(f"Could not load model {self.model_name} to RAM.")
+            logger.error(f"Failed to load model {self.model_name}.")
+            raise RuntimeError(f"Could not load model {self.model_name}.")
 
-    def _ensure_model_on_device(self, target_device: str) -> bool:
+    def _ensure_model_ready_for_generation(self) -> bool:
+        """Ensure model is ready for generation (no device moves needed for distributed models)."""
         if not self.is_loaded or self.model is None:
-            logger.error("Model not loaded, cannot move device.")
+            logger.error("Model not loaded, cannot prepare for generation.")
             return False
-        return move_model_to_device(self.model, target_device)
+        
+        if self.uses_distributed_model:
+            logger.info("Model is distributed across devices - already optimally placed")
+            return True
+        else:
+            # For single-device models, we can still move them if needed
+            current_device = next(self.model.parameters()).device
+            target_device = "cuda" if self.cuda_available else "cpu"
+            
+            if str(current_device) != target_device and not str(current_device).startswith(target_device):
+                logger.info(f"Moving single-device model from {current_device} to {target_device}")
+                return move_model_to_device(self.model, target_device)
+            else:
+                logger.info(f"Model already on appropriate device: {current_device}")
+                return True
 
-    @staticmethod
     def format_conversation_for_model(
+        self,
         messages: List[Dict[str, str]],
         positive_system_prompt: str,
         negative_system_prompt: str
     ) -> str:
         """
-        Format conversation messages for the model, including system prompts.
+        Format conversation messages for the model using tokenizer's chat template.
         """
-        formatted_messages_list = []
-        system_prompt_content = f"YOU SHOULD FOLLOW THESE INSTRUCTIONS:`{positive_system_prompt}\n\nYOU SOULD NEVER DO THESE THINGS:{negative_system_prompt}`"
-        formatted_messages_list.append(f"System: {system_prompt_content}")
-
+        # Create system message with prompts
+        system_prompt_content = f"You should follow these instructions: {positive_system_prompt}\n\nYou should never do these things: {negative_system_prompt}"
+        
+        # Build chat messages in the format expected by the tokenizer
+        chat_messages = [
+            {"role": "system", "content": system_prompt_content}
+        ]
+        
+        # Add conversation messages
         for message in messages:
             role = message.get("role", "user")
             content = message.get("content", "")
-            if role == "user":
+            if content.strip():  # Only add non-empty messages
+                chat_messages.append({"role": role, "content": content})
+        
+        # Use tokenizer's chat template if available
+        if hasattr(self.tokenizer, 'apply_chat_template') and self.tokenizer.chat_template:
+            try:
+                formatted_text = self.tokenizer.apply_chat_template(
+                    chat_messages, 
+                    tokenize=False, 
+                    add_generation_prompt=True
+                )
+                return formatted_text
+            except Exception as e:
+                logger.warning(f"Failed to use chat template: {e}, falling back to manual formatting")
+        
+        # Fallback to manual formatting
+        formatted_messages_list = []
+        for message in chat_messages:
+            role = message["role"]
+            content = message["content"]
+            if role == "system":
+                formatted_messages_list.append(f"System: {content}")
+            elif role == "user":
                 formatted_messages_list.append(f"User: {content}")
             elif role == "assistant":
                 formatted_messages_list.append(f"Assistant: {content}")
+        
         formatted_messages_list.append("Assistant:")
         return "\n".join(formatted_messages_list)
 
@@ -124,8 +186,17 @@ class ChatAI:
         if not self.is_loaded or self.model is None or self.tokenizer is None:
             return {"success": False, "error": "Model not loaded", "response": "", "metadata": {}}
 
+        # Validate conversation history
+        if not conversation_history:
+            return {"success": False, "error": "Empty conversation history", "response": "", "metadata": {}}
+        
+        # Check if conversation has any valid content
+        has_content = any(msg.get("content", "").strip() for msg in conversation_history)
+        if not has_content:
+            return {"success": False, "error": "No content in conversation history", "response": "", "metadata": {}}
+
         current_pipeline = None
-        target_device_for_generation = self.vram_device
+        target_device_for_generation = "cuda" if self.cuda_available else "cpu"
 
         final_positive_prompt = positive_system_prompt_override if positive_system_prompt_override else self.positive_system_prompt_template
         final_negative_prompt = negative_system_prompt_override if negative_system_prompt_override else self.negative_system_prompt_template
@@ -135,21 +206,36 @@ class ChatAI:
             positive_system_prompt=final_positive_prompt,
             negative_system_prompt=final_negative_prompt
         )
+        logger.info(f"Formatted conversation context: {repr(conversation_context)}")
+
+        # Prepare generation configuration outside try block to make variables available in except block
+        generation_config = self.generation_params.copy()
+        current_max_tokens = max_new_tokens if max_new_tokens is not None else generation_config["max_new_tokens"]
+        generation_config["max_new_tokens"] = current_max_tokens
 
         try:
-            if not self._ensure_model_on_device(target_device_for_generation):
-                raise RuntimeError(f"Failed to move model to {target_device_for_generation}.")
+            # Prepare model for generation
+            logger.info("Preparing model for generation")
+            if not self._ensure_model_ready_for_generation():
+                raise RuntimeError("Failed to prepare model for generation.")
 
-            logger.info(f"Creating/getting pipeline on {target_device_for_generation}")
+            # Determine actual device usage for logging
+            if self.uses_distributed_model:
+                device_info = "distributed (GPU+CPU)"
+                target_device_for_generation = "distributed"
+            else:
+                actual_device = next(self.model.parameters()).device
+                device_info = str(actual_device)
+                target_device_for_generation = str(actual_device)
+            
+            logger.info(f"Model ready on: {device_info}")
+
+            logger.info("Creating generation pipeline")
             current_pipeline = get_generation_pipeline(self.model, self.tokenizer, target_device_for_generation)
             if not current_pipeline:
-                raise RuntimeError(f"Failed to create generation pipeline on {target_device_for_generation}.")
+                raise RuntimeError("Failed to create generation pipeline.")
 
-            logger.info(f"Generating response on {target_device_for_generation}...")
-
-            generation_config = self.generation_params.copy()
-            current_max_tokens = max_new_tokens if max_new_tokens is not None else generation_config["max_new_tokens"]
-            generation_config["max_new_tokens"] = current_max_tokens
+            logger.info("Starting text generation...")
 
             gen_result = generate_text(
                 generation_pipeline=current_pipeline,
@@ -162,25 +248,87 @@ class ChatAI:
             if gen_result["success"]:
                  gen_result["metadata"]["model_name"] = self.model_name
                  gen_result["metadata"]["device_used"] = target_device_for_generation
+                 gen_result["metadata"]["cuda_available"] = self.cuda_available
+                 gen_result["metadata"]["distributed_model"] = self.uses_distributed_model
+                 if self.uses_distributed_model:
+                     gen_result["metadata"]["device_map"] = dict(self.model.hf_device_map)
+                 logger.info("Generation completed successfully")
             return gen_result
 
+        except RuntimeError as e:
+            # Handle CUDA errors specifically - for distributed models, try to continue
+            error_str = str(e)
+            if "CUDA" in error_str:
+                logger.warning(f"CUDA error encountered: {error_str}")
+                
+                if not self.uses_distributed_model:
+                    logger.info("Attempting fallback to CPU generation...")
+                    try:
+                        # Move model back to CPU and retry
+                        if move_model_to_device(self.model, "cpu"):
+                            cpu_pipeline = get_generation_pipeline(self.model, self.tokenizer, "cpu")
+                            if cpu_pipeline:
+                                logger.info("Retrying generation on CPU...")
+                                gen_result = generate_text(
+                                    generation_pipeline=cpu_pipeline,
+                                    tokenizer=self.tokenizer,
+                                    conversation_context=conversation_context,
+                                    generation_params=generation_config,
+                                    max_new_tokens=current_max_tokens
+                                )
+                                if gen_result["success"]:
+                                    gen_result["metadata"]["model_name"] = self.model_name
+                                    gen_result["metadata"]["device_used"] = "cpu"
+                                    gen_result["metadata"]["cuda_available"] = self.cuda_available
+                                    gen_result["metadata"]["distributed_model"] = False
+                                    gen_result["metadata"]["fallback_from_cuda"] = True
+                                    logger.info("CPU fallback generation completed successfully")
+                                # Clean up CPU pipeline
+                                del cpu_pipeline
+                                return gen_result
+                    except Exception as fallback_e:
+                        logger.error(f"CPU fallback also failed: {fallback_e}")
+                else:
+                    logger.error("CUDA error with distributed model - no fallback available")
+            
+            logger.error(f"Error during generation: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return {"success": False, "error": str(e), "response": "", "metadata": {}}
         except Exception as e:
             logger.error(f"Error during generation with device handling: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return {"success": False, "error": str(e), "response": "", "metadata": {}}
         finally:
-            logger.info(f"Attempting to move model back to {self.ram_device}.")
-            if self.model is not None:
-                if not self._ensure_model_on_device(self.ram_device):
-                    logger.error(f"CRITICAL: Failed to move model back to {self.ram_device} after generation.")
-                else:
-                    logger.info(f"Model successfully moved back to {self.ram_device}.")
-            if target_device_for_generation == "cuda" and current_pipeline is not None:
-                logger.info("Clearing VRAM generation pipeline and emptying cache.")
-                del current_pipeline
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
+            # Clean up resources
+            if current_pipeline is not None:
+                logger.info("Cleaning up generation pipeline")
+                try:
+                    del current_pipeline
+                    
+                    # Clear GPU cache if we have CUDA
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                        logger.info("GPU cache cleared")
+                except Exception as cleanup_e:
+                    logger.warning(f"Error during pipeline cleanup: {cleanup_e}")
+            
+            # For distributed models, we don't move them back - they stay optimally placed
+            if self.uses_distributed_model:
+                logger.info("Distributed model remains optimally placed across devices")
+            elif not self.uses_distributed_model and self.model is not None:
+                # For single-device models, optionally move back to CPU to free GPU memory
+                try:
+                    current_device = next(self.model.parameters()).device
+                    if "cuda" in str(current_device):
+                        logger.info("Moving single-device model back to CPU to free VRAM")
+                        if not move_model_to_device(self.model, "cpu"):
+                            logger.warning("Failed to move model back to CPU")
+                        else:
+                            logger.info("Model moved back to CPU successfully")
+                except Exception as move_e:
+                    logger.warning(f"Error moving model back to CPU: {move_e}")
 
 # --- Global Instance and Accessor Functions ---
 _chat_ai_instance: Optional[ChatAI] = None

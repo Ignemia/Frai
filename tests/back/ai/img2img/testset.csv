@@ -1,0 +1,121 @@
+id,name,description,input_groups,tested_property
+i2i-1,basic_style_transfer,Basic style transfer from one image to another,portraits;art_styles,style_consistency
+i2i-2,face_swap_simple,Simple face swap between two portrait images,portraits;portraits,face_accuracy
+i2i-3,background_replacement,Replace background while keeping subject,portraits;backgrounds,subject_preservation
+i2i-4,artistic_style_monet,Apply Monet painting style to photograph,landscapes;impressionist,artistic_transformation
+i2i-5,artistic_style_van_gogh,Apply Van Gogh style to landscape image,landscapes;post_impressionist,brush_stroke_mimicry
+i2i-6,color_palette_transfer,Transfer color palette from reference image,nature;color_references,color_matching
+i2i-7,texture_transfer,Transfer texture from one surface to another,textures;objects,texture_quality
+i2i-8,lighting_adaptation,Adapt lighting conditions from reference,portraits;lighting_conditions,lighting_realism
+i2i-9,seasonal_transformation,Transform summer scene to winter,landscapes;seasonal_references,seasonal_accuracy
+i2i-10,age_progression,Age a person's face using reference,portraits;aged_references,age_realism
+i2i-11,cartoon_to_realistic,Convert cartoon image to realistic style,cartoons;photo_references,realism_quality
+i2i-12,realistic_to_cartoon,Convert realistic image to cartoon style,portraits;cartoon_styles,stylization_quality
+i2i-13,architecture_style_transfer,Apply architectural style to building,buildings;architectural_styles,structural_preservation
+i2i-14,weather_condition_change,Change weather conditions in landscape,landscapes;weather_conditions,atmospheric_realism
+i2i-15,time_of_day_shift,Shift from day to night or vice versa,landscapes;time_references,lighting_transition
+i2i-16,resolution_upscale,Upscale low resolution image with style,low_res;high_res_references,detail_enhancement
+i2i-17,partial_style_transfer,Apply style only to specific regions,portraits;art_styles,region_specificity
+i2i-18,multi_style_blend,Blend multiple artistic styles,landscapes;multiple_styles,style_harmony
+i2i-19,emotion_transfer,Transfer facial expression/emotion,portraits;emotion_references,expression_accuracy
+i2i-20,material_transformation,Transform material properties,objects;material_references,material_realism
+i2i-21,consistency_test_1,Generate same transformation multiple times,portraits;art_styles,output_consistency
+i2i-22,consistency_test_2,Repeat style transfer with identical inputs,landscapes;impressionist,reproducibility
+i2i-23,diversity_test_1,Generate varied outputs from same inputs,portraits;art_styles,output_diversity
+i2i-24,diversity_test_2,Multiple interpretations of style transfer,landscapes;abstract_styles,creative_variation
+i2i-25,performance_single,Single image transformation speed test,portraits;art_styles,generation_speed
+i2i-26,performance_batch,Batch processing performance test,multiple_portraits;art_styles,batch_throughput
+i2i-27,edge_case_very_dark,Handle very dark input images,dark_images;bright_references,brightness_handling
+i2i-28,edge_case_very_bright,Handle overexposed input images,bright_images;balanced_references,exposure_correction
+i2i-29,edge_case_monochrome,Transform black and white images,bw_images;color_references,colorization_quality
+i2i-30,edge_case_abstract,Handle abstract input images,abstract_images;realistic_references,interpretation_quality
+i2i-31,portrait_style_renaissance,Apply Renaissance painting style to portrait,portraits;art_styles,classical_transformation
+i2i-32,portrait_style_impressionist,Apply Impressionist style to portrait,portraits;impressionist,artistic_accuracy
+i2i-33,portrait_style_cubist,Apply Cubist style transformation,portraits;art_styles,cubist_interpretation
+i2i-34,portrait_style_pop_art,Convert portrait to Pop Art style,portraits;art_styles,pop_art_aesthetics
+i2i-35,portrait_style_watercolor,Apply watercolor painting effect,portraits;art_styles,watercolor_technique
+i2i-36,portrait_style_oil_painting,Transform to oil painting style,portraits;art_styles,oil_painting_texture
+i2i-37,portrait_style_sketch,Convert photograph to pencil sketch,portraits;art_styles,sketch_quality
+i2i-38,portrait_style_charcoal,Apply charcoal drawing effect,portraits;art_styles,charcoal_rendering
+i2i-39,landscape_seasonal_spring,Transform landscape to spring season,landscapes;seasonal_references,seasonal_transformation
+i2i-40,landscape_seasonal_summer,Transform landscape to summer season,landscapes;seasonal_references,seasonal_accuracy
+i2i-41,landscape_seasonal_autumn,Transform landscape to autumn season,landscapes;seasonal_references,color_transition
+i2i-42,landscape_seasonal_winter,Transform landscape to winter season,landscapes;seasonal_references,winter_effects
+i2i-43,landscape_time_dawn,Transform to dawn lighting,landscapes;time_references,dawn_atmosphere
+i2i-44,landscape_time_midday,Transform to midday lighting,landscapes;time_references,bright_lighting
+i2i-45,landscape_time_sunset,Transform to sunset lighting,landscapes;time_references,sunset_colors
+i2i-46,landscape_time_night,Transform to nighttime scene,landscapes;time_references,night_lighting
+i2i-47,landscape_weather_rain,Add rain effects to landscape,landscapes;weather_conditions,rain_simulation
+i2i-48,landscape_weather_snow,Add snow effects to landscape,landscapes;weather_conditions,snow_effects
+i2i-49,landscape_weather_fog,Add fog effects to landscape,landscapes;weather_conditions,fog_atmosphere
+i2i-50,landscape_weather_storm,Add storm effects to landscape,landscapes;weather_conditions,storm_dynamics
+i2i-51,object_material_wood,Transform object surface to wood,objects;material_references,wood_texture
+i2i-52,object_material_metal,Transform object surface to metal,objects;material_references,metal_reflection
+i2i-53,object_material_glass,Transform object surface to glass,objects;material_references,glass_transparency
+i2i-54,object_material_stone,Transform object surface to stone,objects;material_references,stone_texture
+i2i-55,object_material_fabric,Transform object surface to fabric,objects;material_references,fabric_weave
+i2i-56,object_material_leather,Transform object surface to leather,objects;material_references,leather_grain
+i2i-57,object_material_plastic,Transform object surface to plastic,objects;material_references,plastic_finish
+i2i-58,object_material_ceramic,Transform object surface to ceramic,objects;material_references,ceramic_glaze
+i2i-59,background_studio_white,Replace with white studio background,portraits;backgrounds,clean_background
+i2i-60,background_outdoor_nature,Replace with natural outdoor background,portraits;backgrounds,natural_integration
+i2i-61,background_urban_city,Replace with urban cityscape background,portraits;backgrounds,urban_atmosphere
+i2i-62,background_indoor_office,Replace with office interior background,portraits;backgrounds,professional_setting
+i2i-63,background_beach_ocean,Replace with beach/ocean background,portraits;backgrounds,coastal_environment
+i2i-64,background_mountain_scenic,Replace with mountain scenic background,portraits;backgrounds,scenic_integration
+i2i-65,background_forest_trees,Replace with forest background,portraits;backgrounds,natural_depth
+i2i-66,background_abstract_geometric,Replace with abstract geometric background,portraits;backgrounds,artistic_backdrop
+i2i-67,lighting_golden_hour,Apply golden hour lighting,portraits;lighting_conditions,warm_lighting
+i2i-68,lighting_blue_hour,Apply blue hour lighting,portraits;lighting_conditions,cool_lighting
+i2i-69,lighting_studio_dramatic,Apply dramatic studio lighting,portraits;lighting_conditions,dramatic_shadows
+i2i-70,lighting_natural_window,Apply natural window lighting,portraits;lighting_conditions,soft_natural
+i2i-71,lighting_candlelight,Apply candlelight illumination,portraits;lighting_conditions,warm_intimate
+i2i-72,lighting_neon_colorful,Apply colorful neon lighting,portraits;lighting_conditions,vibrant_colors
+i2i-73,lighting_moonlight,Apply moonlight illumination,portraits;lighting_conditions,cool_mysterious
+i2i-74,lighting_firelight,Apply firelight illumination,portraits;lighting_conditions,flickering_warm
+i2i-75,age_progression_child_teen,Age child to teenager,portraits;aged_references,age_accuracy
+i2i-76,age_progression_teen_adult,Age teenager to adult,portraits;aged_references,maturation_realism
+i2i-77,age_progression_adult_senior,Age adult to senior,portraits;aged_references,aging_effects
+i2i-78,age_regression_senior_adult,Age regression senior to adult,portraits;aged_references,reverse_aging
+i2i-79,age_regression_adult_teen,Age regression adult to teen,portraits;aged_references,youth_restoration
+i2i-80,age_regression_teen_child,Age regression teen to child,portraits;aged_references,childhood_features
+i2i-81,emotion_happy_joyful,Transform to happy/joyful expression,portraits;emotion_references,emotion_accuracy
+i2i-82,emotion_sad_melancholy,Transform to sad/melancholy expression,portraits;emotion_references,emotion_depth
+i2i-83,emotion_angry_fierce,Transform to angry/fierce expression,portraits;emotion_references,intensity_level
+i2i-84,emotion_surprised_shocked,Transform to surprised/shocked expression,portraits;emotion_references,surprise_authenticity
+i2i-85,emotion_peaceful_serene,Transform to peaceful/serene expression,portraits;emotion_references,tranquility_effect
+i2i-86,emotion_confident_determined,Transform to confident/determined expression,portraits;emotion_references,strength_portrayal
+i2i-87,emotion_mysterious_enigmatic,Transform to mysterious/enigmatic expression,portraits;emotion_references,mystery_quality
+i2i-88,emotion_playful_mischievous,Transform to playful/mischievous expression,portraits;emotion_references,playfulness_capture
+i2i-89,style_anime_manga,Transform to anime/manga style,portraits;cartoon_styles,anime_aesthetics
+i2i-90,style_disney_animation,Transform to Disney animation style,portraits;cartoon_styles,disney_characteristics
+i2i-91,style_pixar_3d,Transform to Pixar 3D style,portraits;cartoon_styles,3d_animation_quality
+i2i-92,style_comic_book,Transform to comic book style,portraits;cartoon_styles,comic_book_effects
+i2i-93,style_graphic_novel,Transform to graphic novel style,portraits;cartoon_styles,graphic_sophistication
+i2i-94,style_caricature,Transform to caricature style,portraits;cartoon_styles,feature_exaggeration
+i2i-95,style_minimalist,Transform to minimalist style,portraits;art_styles,simplification_quality
+i2i-96,style_surrealist,Transform to surrealist style,portraits;art_styles,surreal_elements
+i2i-97,color_palette_warm,Apply warm color palette,portraits;color_references,warm_tone_harmony
+i2i-98,color_palette_cool,Apply cool color palette,portraits;color_references,cool_tone_balance
+i2i-99,color_palette_monochrome,Apply monochromatic color scheme,portraits;color_references,monochrome_elegance
+i2i-100,color_palette_vintage,Apply vintage color grading,portraits;color_references,vintage_authenticity
+i2i-101,color_palette_vibrant,Apply vibrant saturated colors,portraits;color_references,color_intensity
+i2i-102,color_palette_pastel,Apply pastel color scheme,portraits;color_references,pastel_softness
+i2i-103,color_palette_sepia,Apply sepia tone effect,portraits;color_references,sepia_nostalgia
+i2i-104,color_palette_black_white,Convert to black and white,portraits;color_references,contrast_quality
+i2i-105,texture_smooth_skin,Apply smooth skin texture,portraits;textures,skin_refinement
+i2i-106,texture_rough_weathered,Apply rough weathered texture,portraits;textures,weathering_effects
+i2i-107,texture_fabric_clothing,Apply fabric texture to clothing,portraits;textures,clothing_realism
+i2i-108,texture_hair_detail,Enhance hair texture detail,portraits;textures,hair_definition
+i2i-109,architecture_modern_glass,Transform to modern glass architecture,buildings;architectural_styles,modern_aesthetics
+i2i-110,architecture_classical_stone,Transform to classical stone architecture,buildings;architectural_styles,classical_elegance
+i2i-111,architecture_gothic_cathedral,Transform to Gothic cathedral style,buildings;architectural_styles,gothic_grandeur
+i2i-112,architecture_art_deco,Transform to Art Deco style,buildings;architectural_styles,deco_sophistication
+i2i-113,architecture_brutalist_concrete,Transform to Brutalist concrete style,buildings;architectural_styles,brutalist_power
+i2i-114,architecture_victorian_ornate,Transform to Victorian ornate style,buildings;architectural_styles,victorian_detail
+i2i-115,architecture_minimalist_clean,Transform to minimalist clean lines,buildings;architectural_styles,minimalist_purity
+i2i-116,architecture_futuristic_sci_fi,Transform to futuristic sci-fi style,buildings;architectural_styles,futuristic_vision
+i2i-117,vehicle_vintage_classic,Transform to vintage classic style,objects;art_styles,vintage_automotive
+i2i-118,vehicle_modern_sleek,Transform to modern sleek design,objects;art_styles,modern_aesthetics
+i2i-119,vehicle_rugged_offroad,Transform to rugged off-road style,objects;art_styles,rugged_functionality
+i2i-120,vehicle_luxury_elegant,Transform to luxury elegant style,objects;art_styles,luxury_refinement

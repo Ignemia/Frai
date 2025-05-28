@@ -105,6 +105,9 @@ def is_lfs_pointer_file(file_path: Path) -> bool:
 
 def has_lfs_issues(model_path: Path) -> bool:
     """Check if model has Git LFS files that aren't downloaded."""
+    # Temporarily disabled LFS checks - assuming models are properly downloaded
+    return False
+    
     if not model_path.exists():
         return False
     

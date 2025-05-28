@@ -34,15 +34,30 @@ def load_tts_model(model_identifier: str = "nari-labs/Dia-1.6B", device: str = "
         compute_dtype = torch.float16 if device == "cuda" else torch.float32
         logger.info(f"Using compute_dtype: {compute_dtype}")
         
-        model = Dia.from_pretrained(model_identifier, compute_dtype=compute_dtype)
-        model.to(torch.device(device))
+        # Try loading without compute_dtype parameter first
+        try:
+            model = Dia.from_pretrained(model_identifier)
+        except Exception as e:
+            logger.warning(f"Failed to load without compute_dtype, trying fallback to HuggingFace: {e}")
+            # Fallback to HuggingFace model ID if local path fails
+            model = Dia.from_pretrained("nari-labs/Dia-1.6B")
+        
+        # Dia model may not support .to() method like standard PyTorch models
+        # Try to move to device if the method exists
+        try:
+            if hasattr(model, 'to'):
+                model.to(torch.device(device))
+            else:
+                logger.info(f"Dia model does not have .to() method, device handling may be managed internally")
+        except Exception as e:
+            logger.warning(f"Could not move Dia model to {device}: {e}")
         
         # The Dia model might already set its internal device, but explicit .to() is safer.
         # Check if the model has a device attribute and update it if necessary for consistency.
         if hasattr(model, 'device'):
             model.device = torch.device(device) 
         else: # Dia class might store device info differently, e.g. on submodules
-            logger.warning(f"Dia model object does not have a direct 'device' attribute to set after .to(). Ensure submodules are on {device}.")
+            logger.info(f"Dia model object does not have a direct 'device' attribute. Device management may be internal.")
 
         logger.info(f"Dia TTS model {model_identifier} loaded successfully on {device}.")
         return model

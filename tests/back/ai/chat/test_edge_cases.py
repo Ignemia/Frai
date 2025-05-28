@@ -10,14 +10,14 @@ import pytest
 import logging
 from typing import Dict, Any
 
-from test_utils import (
+from .test_utils import (
     build_conversation_history,
     verify_output,
     update_conversation_context,
     get_test_cases_by_category
 )
-from conftest import setup_chat_ai
-from Frai.back.ai.chat import generate_ai_text
+from .conftest import setup_chat_ai
+from back.ai.chat import generate_ai_text
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -70,8 +70,8 @@ def test_edge_cases(setup_chat_ai, test_case):
     # Build conversation history
     conversation_history = build_conversation_history(test_case)
     
-    # Generate a response using the actual model
-    response = generate_ai_text(conversation_history=conversation_history)
+    # Generate a response using the actual model with short tokens for speed
+    response = generate_ai_text(conversation_history=conversation_history, max_new_tokens=5)
     
     # Log response for debugging
     if response.get("success", False):

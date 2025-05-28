@@ -1,14 +1,14 @@
-import os
-import sys
+import pytest
+import logging
+from typing import Dict, Any
 import pytest
 import logging
 from typing import Dict, Any
 
-# Add project root to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../')))
 
-from test_utils import clear_conversation_contexts
-from Frai.back.ai.chat import (
+
+from .test_utils import clear_conversation_contexts
+from back.ai.chat import (
     initialize_chat_system,
     get_chat_ai_instance,
     generate_ai_text

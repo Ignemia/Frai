@@ -1,0 +1,50 @@
+id,group,description,audio_path,transcript_path,language
+vi-audio-1,clean,Clear speech in quiet environment,Frai/tests/back/ai/voicein/test_data/clear_short.wav,Frai/tests/back/ai/voicein/transcripts/clear_short.txt,en-US
+vi-audio-2,clean,Medium length clear speech,Frai/tests/back/ai/voicein/test_data/clear_medium.wav,Frai/tests/back/ai/voicein/transcripts/clear_medium.txt,en-US
+vi-audio-3,clean,Long form clear speech recording,Frai/tests/back/ai/voicein/test_data/clear_long.wav,Frai/tests/back/ai/voicein/transcripts/clear_long.txt,en-US
+vi-audio-4,noisy,Speech with light background noise,Frai/tests/back/ai/voicein/test_data/noisy_light.wav,Frai/tests/back/ai/voicein/transcripts/noisy_light.txt,en-US
+vi-audio-5,noisy,Speech with heavy background noise,Frai/tests/back/ai/voicein/test_data/noisy_heavy.wav,Frai/tests/back/ai/voicein/transcripts/noisy_heavy.txt,en-US
+vi-audio-6,phone_call,Recording of phone conversation,Frai/tests/back/ai/voicein/test_data/phone_call.wav,Frai/tests/back/ai/voicein/transcripts/phone_call.txt,en-US
+vi-audio-7,accented,British English accent speaker,Frai/tests/back/ai/voicein/test_data/british_accent.wav,Frai/tests/back/ai/voicein/transcripts/british_accent.txt,en-GB
+vi-audio-8,accented,Southern American accent speaker,Frai/tests/back/ai/voicein/test_data/southern_accent.wav,Frai/tests/back/ai/voicein/transcripts/southern_accent.txt,en-US
+vi-audio-9,accented,Non-native English speaker,Frai/tests/back/ai/voicein/test_data/non_native.wav,Frai/tests/back/ai/voicein/transcripts/non_native.txt,en-US
+vi-audio-10,speed_variants,Very fast speaking rate,Frai/tests/back/ai/voicein/test_data/fast_speech.wav,Frai/tests/back/ai/voicein/transcripts/fast_speech.txt,en-US
+vi-audio-11,speed_variants,Very slow speaking rate,Frai/tests/back/ai/voicein/test_data/slow_speech.wav,Frai/tests/back/ai/voicein/transcripts/slow_speech.txt,en-US
+vi-audio-12,volume_variants,Whispered low volume speech,Frai/tests/back/ai/voicein/test_data/whispered.wav,Frai/tests/back/ai/voicein/transcripts/whispered.txt,en-US
+vi-audio-13,volume_variants,Very loud speech,Frai/tests/back/ai/voicein/test_data/loud_speech.wav,Frai/tests/back/ai/voicein/transcripts/loud_speech.txt,en-US
+vi-audio-14,specialized,Technical terminology heavy speech,Frai/tests/back/ai/voicein/test_data/technical_jargon.wav,Frai/tests/back/ai/voicein/transcripts/technical_jargon.txt,en-US
+vi-audio-15,specialized,Medical terminology speech,Frai/tests/back/ai/voicein/test_data/medical_terms.wav,Frai/tests/back/ai/voicein/transcripts/medical_terms.txt,en-US
+vi-audio-16,specialized,Legal language recording,Frai/tests/back/ai/voicein/test_data/legal_language.wav,Frai/tests/back/ai/voicein/transcripts/legal_language.txt,en-US
+vi-audio-17,numerical,Numbers and dates heavy speech,Frai/tests/back/ai/voicein/test_data/numbers_dates.wav,Frai/tests/back/ai/voicein/transcripts/numbers_dates.txt,en-US
+vi-audio-18,numerical,Spelled out words and characters,Frai/tests/back/ai/voicein/test_data/spelling_out.wav,Frai/tests/back/ai/voicein/transcripts/spelling_out.txt,en-US
+vi-audio-19,conversation,Two speakers conversation,Frai/tests/back/ai/voicein/test_data/two_speakers.wav,Frai/tests/back/ai/voicein/transcripts/two_speakers.txt,en-US
+vi-audio-20,conversation,Overlapping speech segments,Frai/tests/back/ai/voicein/test_data/overlapping.wav,Frai/tests/back/ai/voicein/transcripts/overlapping.txt,en-US
+vi-audio-21,lecture,Academic lecture recording,Frai/tests/back/ai/voicein/test_data/academic_lecture.wav,Frai/tests/back/ai/voicein/transcripts/academic_lecture.txt,en-US
+vi-audio-22,lecture,Presentation with slide references,Frai/tests/back/ai/voicein/test_data/presentation.wav,Frai/tests/back/ai/voicein/transcripts/presentation.txt,en-US
+vi-audio-23,conversation,Interview question and answer format,Frai/tests/back/ai/voicein/test_data/interview.wav,Frai/tests/back/ai/voicein/transcripts/interview.txt,en-US
+vi-audio-24,artistic,Poetry reading with rhythm and pauses,Frai/tests/back/ai/voicein/test_data/poetry.wav,Frai/tests/back/ai/voicein/transcripts/poetry.txt,en-US
+vi-audio-25,artistic,Sung lyrics recording,Frai/tests/back/ai/voicein/test_data/song_lyrics.wav,Frai/tests/back/ai/voicein/transcripts/song_lyrics.txt,en-US
+vi-audio-26,edge_cases,Complete silence audio sample,Frai/tests/back/ai/voicein/test_data/silence.wav,Frai/tests/back/ai/voicein/transcripts/silence.txt,en-US
+vi-audio-27,edge_cases,Single word utterance,Frai/tests/back/ai/voicein/test_data/single_word.wav,Frai/tests/back/ai/voicein/transcripts/single_word.txt,en-US
+vi-audio-28,foreign,Spanish language speech,Frai/tests/back/ai/voicein/test_data/spanish.wav,Frai/tests/back/ai/voicein/transcripts/spanish.txt,es-ES
+vi-audio-29,foreign,French language speech,Frai/tests/back/ai/voicein/test_data/french.wav,Frai/tests/back/ai/voicein/transcripts/french.txt,fr-FR
+vi-audio-30,foreign,English with foreign words mixed in,Frai/tests/back/ai/voicein/test_data/mixed_languages.wav,Frai/tests/back/ai/voicein/transcripts/mixed_languages.txt,en-US
+vi-audio-31,degraded,Audio with distortion artifacts,Frai/tests/back/ai/voicein/test_data/distorted.wav,Frai/tests/back/ai/voicein/transcripts/distorted.txt,en-US
+vi-audio-32,degraded,Low quality compressed audio,Frai/tests/back/ai/voicein/test_data/low_bitrate.wav,Frai/tests/back/ai/voicein/transcripts/low_bitrate.txt,en-US
+vi-audio-33,degraded,Audio with echo and reverb,Frai/tests/back/ai/voicein/test_data/echo_reverb.wav,Frai/tests/back/ai/voicein/transcripts/echo_reverb.txt,en-US
+vi-audio-34,environmental,Outdoor recording with wind noise,Frai/tests/back/ai/voicein/test_data/wind_noise.wav,Frai/tests/back/ai/voicein/transcripts/wind_noise.txt,en-US
+vi-audio-35,environmental,Speech in crowded environment,Frai/tests/back/ai/voicein/test_data/crowd_background.wav,Frai/tests/back/ai/voicein/transcripts/crowd_background.txt,en-US
+vi-audio-36,degraded,Radio quality transmission audio,Frai/tests/back/ai/voicein/test_data/radio_transmission.wav,Frai/tests/back/ai/voicein/transcripts/radio_transmission.txt,en-US
+vi-audio-37,demographic,Elderly speaker voice,Frai/tests/back/ai/voicein/test_data/elderly_speaker.wav,Frai/tests/back/ai/voicein/transcripts/elderly_speaker.txt,en-US
+vi-audio-38,demographic,Child speaker voice,Frai/tests/back/ai/voicein/test_data/child_speaker.wav,Frai/tests/back/ai/voicein/transcripts/child_speaker.txt,en-US
+vi-audio-39,voice_conditions,Speaker with hoarse voice,Frai/tests/back/ai/voicein/test_data/hoarse_voice.wav,Frai/tests/back/ai/voicein/transcripts/hoarse_voice.txt,en-US
+vi-audio-40,voice_conditions,Speech with stuttering,Frai/tests/back/ai/voicein/test_data/stuttering.wav,Frai/tests/back/ai/voicein/transcripts/stuttering.txt,en-US
+vi-audio-41,equipment,Poor microphone quality recording,Frai/tests/back/ai/voicein/test_data/poor_microphone.wav,Frai/tests/back/ai/voicein/transcripts/poor_microphone.txt,en-US
+vi-audio-42,equipment,Excellent microphone quality recording,Frai/tests/back/ai/voicein/test_data/excellent_microphone.wav,Frai/tests/back/ai/voicein/transcripts/excellent_microphone.txt,en-US
+vi-audio-43,streaming,Live streaming audio quality,Frai/tests/back/ai/voicein/test_data/live_stream.wav,Frai/tests/back/ai/voicein/transcripts/live_stream.txt,en-US
+vi-audio-44,conversation,Multi-participant conference call,Frai/tests/back/ai/voicein/test_data/conference_call.wav,Frai/tests/back/ai/voicein/transcripts/conference_call.txt,en-US
+vi-audio-45,natural,Spontaneous unscripted speech,Frai/tests/back/ai/voicein/test_data/spontaneous.wav,Frai/tests/back/ai/voicein/transcripts/spontaneous.txt,en-US
+vi-audio-46,formal,Prepared formal speech recording,Frai/tests/back/ai/voicein/test_data/prepared_speech.wav,Frai/tests/back/ai/voicein/transcripts/prepared_speech.txt,en-US
+vi-audio-47,emotional,Angry emotional speech,Frai/tests/back/ai/voicein/test_data/angry_speech.wav,Frai/tests/back/ai/voicein/transcripts/angry_speech.txt,en-US
+vi-audio-48,emotional,Crying emotional speech,Frai/tests/back/ai/voicein/test_data/crying_speech.wav,Frai/tests/back/ai/voicein/transcripts/crying_speech.txt,en-US
+vi-audio-49,specialized,Heavy acronym usage speech,Frai/tests/back/ai/voicein/test_data/acronyms.wav,Frai/tests/back/ai/voicein/transcripts/acronyms.txt,en-US

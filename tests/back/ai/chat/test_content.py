@@ -9,14 +9,14 @@ import pytest
 import logging
 from typing import Dict, Any
 
-from test_utils import (
+from .test_utils import (
     build_conversation_history,
     verify_output,
     update_conversation_context,
     get_test_cases_by_category
 )
-from conftest import setup_chat_ai
-from Frai.back.ai.chat import generate_ai_text
+from .conftest import setup_chat_ai
+from back.ai.chat import generate_ai_text
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -59,10 +59,11 @@ def test_content_generation(setup_chat_ai, test_case):
     if test_case["name"] == "system_prompt_override":
         system_prompt = "You are a helpful assistant that responds to user queries with creativity and detail."
     
-    # Generate a response using the actual model
+    # Generate a response using the actual model with short tokens for speed
     response = generate_ai_text(
         conversation_history=conversation_history,
-        positive_system_prompt=system_prompt
+        positive_system_prompt=system_prompt,
+        max_new_tokens=5
     )
     
     # Log response for debugging

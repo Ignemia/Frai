@@ -1,0 +1,101 @@
+id,name,description,prompt_category,text_prompt,expected_properties,evaluation_metric
+t2i-1,basic_red_apple,Basic single object generation,simple_objects,A red apple,color:red object:apple,generation_success
+t2i-2,blue_car_simple,Simple vehicle generation,simple_objects,A blue car,color:blue object:vehicle,generation_success
+t2i-3,yellow_flower_basic,Basic flower generation,simple_objects,A yellow flower,color:yellow object:flower,generation_success
+t2i-4,green_tree_simple,Simple tree generation,simple_objects,A green tree,color:green object:tree,generation_success
+t2i-5,white_house_basic,Basic building generation,simple_objects,A white house,color:white object:building,generation_success
+t2i-6,cat_on_table,Spatial relationship test,spatial_relations,A cat on a table,spatial:on_top_of objects:cat_table,prompt_understanding
+t2i-7,bird_above_tree,Vertical spatial relation,spatial_relations,A bird above a tree,spatial:above objects:bird_tree,prompt_understanding
+t2i-8,car_next_to_house,Horizontal spatial relation,spatial_relations,A car next to a house,spatial:beside objects:car_house,prompt_understanding
+t2i-9,flower_in_vase,Container relationship,spatial_relations,A flower in a vase,spatial:inside objects:flower_vase,prompt_understanding
+t2i-10,mountains_behind_lake,Depth relationship,spatial_relations,Mountains behind a lake,spatial:background objects:mountains_lake,prompt_understanding
+t2i-11,running_dog,Action interpretation,actions,A dog running in a park,action:running setting:park,prompt_understanding
+t2i-12,jumping_person,Human action,actions,A person jumping over a fence,action:jumping object:fence,prompt_understanding
+t2i-13,flying_bird,Natural action,actions,A bird flying in the sky,action:flying setting:sky,prompt_understanding
+t2i-14,driving_car,Vehicle action,actions,A car driving on a road,action:driving setting:road,prompt_understanding
+t2i-15,flowing_water,Natural movement,actions,Water flowing down a waterfall,action:flowing object:waterfall,prompt_understanding
+t2i-16,van_gogh_portrait,Artistic style transfer,artistic_styles,A portrait in the style of Van Gogh,style:van_gogh type:portrait,style_accuracy
+t2i-17,oil_painting_landscape,Medium style,artistic_styles,A landscape as an oil painting,style:oil_painting type:landscape,style_accuracy
+t2i-18,watercolor_city,Watercolor technique,artistic_styles,A city scene in watercolor style,style:watercolor type:cityscape,style_accuracy
+t2i-19,photorealistic_flower,Photorealistic style,artistic_styles,A flower in photorealistic style,style:photorealistic type:flower,style_accuracy
+t2i-20,pencil_sketch_forest,Sketch style,artistic_styles,A forest in pencil sketch style,style:pencil_sketch type:forest,style_accuracy
+t2i-21,happy_child_playing,Positive emotion,emotions,A happy child playing,emotion:happiness age:child,prompt_understanding
+t2i-22,peaceful_garden_sunset,Serene mood,emotions,A peaceful garden at sunset,emotion:peace time:sunset,prompt_understanding
+t2i-23,dramatic_stormy_sky,Intense atmosphere,emotions,A dramatic stormy sky,emotion:drama weather:storm,prompt_understanding
+t2i-24,cozy_fireplace_scene,Warm atmosphere,emotions,A cozy fireplace scene,emotion:warmth setting:indoor,prompt_understanding
+t2i-25,mysterious_forest_night,Dark mood,emotions,A mysterious forest at night,emotion:mystery time:night,prompt_understanding
+t2i-26,bright_sunlight_portrait,Lighting condition,lighting,A portrait in bright sunlight,lighting:bright_sunlight type:portrait,prompt_understanding
+t2i-27,cityscape_at_dawn,Dawn lighting,lighting,A cityscape at dawn,lighting:dawn type:cityscape,prompt_understanding
+t2i-28,landscape_at_sunset,Sunset lighting,lighting,A landscape at sunset,lighting:sunset type:landscape,prompt_understanding
+t2i-29,street_scene_at_night,Night lighting,lighting,A street scene at night,lighting:night type:street,prompt_understanding
+t2i-30,room_with_candlelight,Dim lighting,lighting,A room with candlelight,lighting:candlelight setting:indoor,prompt_understanding
+t2i-31,large_elephant,Size attribute,attributes,A large elephant,size:large animal:elephant,prompt_understanding
+t2i-32,small_mouse,Size attribute,attributes,A small mouse,size:small animal:mouse,prompt_understanding
+t2i-33,tall_building,Height attribute,attributes,A tall building,size:tall object:building,prompt_understanding
+t2i-34,three_red_balloons,Quantity specification,attributes,Three red balloons,quantity:three color:red,prompt_understanding
+t2i-35,many_colorful_flowers,Multiple objects,attributes,Many colorful flowers,quantity:many property:colorful,prompt_understanding
+t2i-36,bustling_marketplace,Complex scene,complex_scenes,A bustling marketplace in Morocco with colorful spices and textiles,complexity:high setting:marketplace,composition_quality
+t2i-37,serene_mountain_lake,Natural landscape,complex_scenes,A serene mountain lake at sunset with reflections of pine trees,complexity:medium setting:nature,composition_quality
+t2i-38,cyberpunk_cityscape,Futuristic scene,complex_scenes,A cyberpunk cityscape at night with neon lights and flying cars,complexity:high setting:futuristic,composition_quality
+t2i-39,medieval_castle,Historical scene,complex_scenes,A medieval castle on a hill surrounded by a moat and forest,complexity:medium setting:historical,composition_quality
+t2i-40,underwater_coral_reef,Underwater scene,complex_scenes,A underwater coral reef teeming with tropical fish and sea life,complexity:high setting:underwater,composition_quality
+t2i-41,professional_headshot,Portrait photography,portraits,A professional headshot of a smiling businessman,type:portrait style:professional,quality_score >= 15
+t2i-42,elderly_woman_portrait,Age-specific portrait,portraits,An elderly woman with kind eyes and wrinkled hands,type:portrait age:elderly,quality_score >= 15
+t2i-43,child_laughing,Child portrait,portraits,A young child laughing while playing with toys,type:portrait age:child emotion:joy,quality_score >= 15
+t2i-44,warrior_in_armor,Character portrait,portraits,A warrior in medieval armor holding a sword,type:character period:medieval,quality_score >= 15
+t2i-45,scientist_in_lab,Professional portrait,portraits,A scientist in a laboratory wearing safety goggles,type:portrait profession:scientist,quality_score >= 15
+t2i-46,desert_sand_dunes,Desert landscape,landscapes,A vast desert with sand dunes under a starry sky,type:landscape setting:desert time:night,quality_score >= 18
+t2i-47,tropical_beach,Beach landscape,landscapes,A tropical beach with palm trees and crystal clear water,type:landscape setting:beach,quality_score >= 18
+t2i-48,snowy_mountain_peak,Mountain landscape,landscapes,A snowy mountain peak with clouds swirling around it,type:landscape setting:mountains weather:snow,quality_score >= 18
+t2i-49,countryside_rolling_hills,Rural landscape,landscapes,A rolling green countryside with sheep and farmhouses,type:landscape setting:rural,quality_score >= 18
+t2i-50,rainforest_waterfall,Forest landscape,landscapes,A dense rainforest with exotic birds and waterfalls,type:landscape setting:forest,quality_score >= 18
+t2i-51,swirling_colors_joy,Abstract emotion,abstract,Swirling colors representing the emotion of joy,type:abstract emotion:joy,generation_success
+t2i-52,geometric_zero_gravity,Abstract physics,abstract,Geometric shapes floating in zero gravity,type:abstract concept:physics,generation_success
+t2i-53,explosion_light_space,Abstract cosmic,abstract,A explosion of light and energy in deep space,type:abstract setting:space,generation_success
+t2i-54,water_musical_notes,Abstract transformation,abstract,Flowing water transformed into musical notes,type:abstract concept:transformation,generation_success
+t2i-55,time_spiral_concept,Abstract time,abstract,The concept of time visualized as interconnected spirals,type:abstract concept:time,generation_success
+t2i-56,dragon_breathing_fire,Fantasy creature,fantasy,A majestic dragon breathing fire over a medieval village,type:fantasy creature:dragon setting:medieval,composition_quality
+t2i-57,enchanted_forest_fairy,Fantasy environment,fantasy,An enchanted forest with glowing mushrooms and fairy lights,type:fantasy setting:forest magical:true,composition_quality
+t2i-58,wizard_casting_spell,Fantasy character,fantasy,A wizard casting a spell in an ancient library,type:fantasy character:wizard setting:library,composition_quality
+t2i-59,phoenix_rising_ashes,Mythical creature,fantasy,A phoenix rising from ashes against a stormy sky,type:fantasy creature:phoenix weather:storm,composition_quality
+t2i-60,crystal_cave_magical,Fantasy location,fantasy,A crystal cave with magical glowing gems,type:fantasy setting:cave magical:true,composition_quality
+t2i-61,architectural_blueprint,Technical drawing,technical,A detailed architectural blueprint of a modern skyscraper,type:technical style:blueprint,detail_level >= 2.0
+t2i-62,jet_engine_cross_section,Engineering diagram,technical,A cross-section diagram of a jet engine,type:technical style:diagram,detail_level >= 2.0
+t2i-63,dna_molecular_structure,Scientific illustration,technical,A molecular structure of DNA with accurate scientific detail,type:technical style:scientific,detail_level >= 2.0
+t2i-64,circuit_board_diagram,Electronic schematic,technical,A circuit board with electronic components and traces,type:technical style:schematic,detail_level >= 2.0
+t2i-65,heart_anatomical,Medical illustration,technical,A anatomical illustration of the human heart,type:technical style:medical,detail_level >= 2.0
+t2i-66,high_resolution_test,High resolution generation,quality_tests,A detailed landscape photograph,any,resolution_check >= 512x512
+t2i-67,contrast_test,High contrast image,quality_tests,A black and white cityscape with strong contrast,high_contrast,quality_score >= 20
+t2i-68,color_diversity_test,Colorful generation,quality_tests,A vibrant rainbow over a field of wildflowers,colorful,quality_score >= 15
+t2i-69,detail_complexity_test,High detail image,quality_tests,An intricate clockwork mechanism with visible gears,detailed,detail_level >= 3.0
+t2i-70,sharpness_test,Image sharpness,quality_tests,A crystal clear photograph of a dewdrop on a leaf,sharp_detailed,detail_level >= 2.5
+t2i-71,empty_prompt_test,Empty input handling,edge_cases,,none,error
+t2i-72,very_long_prompt_test,Long prompt handling,edge_cases,A beautiful landscape with mountains and trees and flowers and rivers and clouds and birds and animals and rocks and grass and sky and sun and moon and stars repeated many times to create an extremely long prompt that tests the system's ability to handle verbose descriptions,any,generation_success
+t2i-73,special_characters_test,Special character handling,edge_cases,A cat with émojis 🐱🌟✨ and spëcial chäracters,any,generation_success
+t2i-74,conflicting_prompt_test,Contradictory descriptions,edge_cases,A transparent opaque object,any,generation_success
+t2i-75,nonsense_prompt_test,Nonsensical input,edge_cases,Flibber jab wookle frax quantum dancing,any,generation_success
+t2i-76,single_word_test,Minimal prompt,edge_cases,Cat,any,generation_success
+t2i-77,numbers_only_test,Numeric prompt,edge_cases,123456789,any,generation_success
+t2i-78,punctuation_only_test,Punctuation prompt,edge_cases,!!!???...,any,generation_success
+t2i-79,non_english_spanish,Spanish language,edge_cases,Un gato rojo en una mesa,any,generation_success
+t2i-80,non_english_japanese,Japanese language,edge_cases,赤い猫がテーブルの上に,any,generation_success
+t2i-81,style_consistency_test1,Style consistency check,consistency_tests,A portrait in Van Gogh style,style:van_gogh,style_accuracy
+t2i-82,style_consistency_test2,Repeat style test,consistency_tests,A portrait in Van Gogh style,style:van_gogh,style_accuracy
+t2i-83,color_consistency_test1,Color consistency check,consistency_tests,A bright red apple,color:red,color_accuracy
+t2i-84,color_consistency_test2,Repeat color test,consistency_tests,A bright red apple,color:red,color_accuracy
+t2i-85,object_consistency_test1,Object consistency check,consistency_tests,A golden retriever dog,object:dog breed:golden_retriever,object_presence
+t2i-86,object_consistency_test2,Repeat object test,consistency_tests,A golden retriever dog,object:dog breed:golden_retriever,object_presence
+t2i-87,batch_generation_test1,Batch test sample 1,performance_tests,A simple red rose,any,generation_success
+t2i-88,batch_generation_test2,Batch test sample 2,performance_tests,A simple blue bird,any,generation_success
+t2i-89,batch_generation_test3,Batch test sample 3,performance_tests,A simple green leaf,any,generation_success
+t2i-90,batch_generation_test4,Batch test sample 4,performance_tests,A simple yellow sun,any,generation_success
+t2i-91,speed_test_simple,Speed test simple prompt,performance_tests,A cat,any,generation_success
+t2i-92,speed_test_medium,Speed test medium prompt,performance_tests,A cat sitting on a windowsill,any,generation_success
+t2i-93,speed_test_complex,Speed test complex prompt,performance_tests,A detailed oil painting of a cat sitting on an ornate Victorian windowsill with sunlight streaming through lace curtains,any,generation_success
+t2i-94,memory_test_sequence1,Memory usage test 1,performance_tests,A landscape painting,any,generation_success
+t2i-95,memory_test_sequence2,Memory usage test 2,performance_tests,A portrait photograph,any,generation_success
+t2i-96,memory_test_sequence3,Memory usage test 3,performance_tests,An abstract artwork,any,generation_success
+t2i-97,artifact_detection_test,Artifact detection,quality_tests,A high quality professional photograph of a sunset,any,artifact_detection
+t2i-98,exposure_handling_test,Exposure balance test,quality_tests,A well-exposed photograph of a person outdoors,balanced_exposure,quality_score >= 12
+t2i-99,noise_reduction_test,Clean generation test,quality_tests,A clean sharp image of a modern building,clean_sharp,artifact_detection
+t2i-100,final_integration_test,Complete system test,integration_tests,A photorealistic portrait of a smiling woman with brown hair in a garden setting during golden hour,photorealistic high_quality,quality_score >= 20
