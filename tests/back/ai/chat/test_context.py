@@ -95,7 +95,9 @@ def test_context_management(setup_chat_ai, test_case):
     
     # Generate a response using the actual model - use more tokens for context tests
     # that need complete answers or reasoning
-    if test_case['name'] in ['context_3', 'sequential_3']:
+    if test_case['name'] == 'sequential_3':
+        max_tokens = 50  # Need many more tokens for mathematical reasoning to get specific number
+    elif test_case['name'] in ['context_3']:
         max_tokens = 20  # Need more tokens for reasoning and complete answers
     elif test_case['name'].startswith('sequential'):
         max_tokens = 15  # Sequential tests need reasoning space

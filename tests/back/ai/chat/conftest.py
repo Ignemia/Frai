@@ -1,11 +1,11 @@
 import pytest
 import logging
-from typing import Dict, Any
-import pytest
-import logging
+import sys
+import os
 from typing import Dict, Any
 
-
+# Add project root to path for imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../')))
 
 from .test_utils import clear_conversation_contexts
 from back.ai.chat import (

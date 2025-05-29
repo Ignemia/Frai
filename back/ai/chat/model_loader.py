@@ -9,9 +9,14 @@ import gc
 logger = logging.getLogger(__name__)
 
 def get_optimal_device_map(model_name_or_path: str, model_path: str):
-    """Calculate optimal device mapping for partial GPU offloading."""
+    """Calculate optimal device mapping for CUDA with sequential offloading."""
 
-    # Determine optimal device mapping for loading (handled below)
+    # Force CPU-only mode to avoid Gemma3 compilation issues during testing
+    import os
+    if os.getenv("FORCE_CPU_MODE", "false").lower() == "true":
+        logger.info("FORCE_CPU_MODE enabled, using CPU-only device map")
+        return "cpu"
+
     if not torch.cuda.is_available():
         logger.info("CUDA not available, using CPU-only device map")
         return "cpu"
@@ -27,28 +32,13 @@ def get_optimal_device_map(model_name_or_path: str, model_path: str):
         logger.info(f"GPU memory: {gpu_free_memory / 1024**3:.1f}GB free / {gpu_memory / 1024**3:.1f}GB total")
         logger.info(f"System RAM: {system_memory / 1024**3:.1f}GB total")
         
-        # Calculate available memory for model (leave some buffer)
-        gpu_available = gpu_free_memory * 0.85  # 85% of free GPU memory
-        
-        # If we have plenty of GPU memory, use GPU-first mapping
-        if gpu_available > 6 * 1024**3:  # 6GB threshold
-            logger.info("Sufficient GPU memory available - using GPU-first device mapping")
-            return "auto"
-        
-        # If we have some GPU memory, use partial offloading
-        elif gpu_available > 3 * 1024**3:  # 3GB threshold
-            logger.info("Limited GPU memory - using partial offloading strategy")
-            # This will be handled by accelerate's automatic device mapping
-            return "auto"
-        
-        # If very limited GPU memory, use CPU only
-        else:
-            logger.info("Very limited GPU memory - using CPU-only mapping")
-            return "cpu"
+        # Always use auto mapping with CUDA - let accelerate handle sequential offloading
+        logger.info("Using CUDA with automatic sequential offloading to RAM when needed")
+        return "auto"
             
     except Exception as e:
-        logger.warning(f"Error calculating device map: {e}, defaulting to CPU")
-        return "cpu"
+        logger.warning(f"Error calculating device map: {e}, defaulting to auto")
+        return "auto"
 
 def load_model_and_tokenizer(model_name_or_path: str, model_path: str):
     """Loads the model and tokenizer with optimal device mapping for partial GPU offloading."""
@@ -79,25 +69,34 @@ def load_model_and_tokenizer(model_name_or_path: str, model_path: str):
 
         # Load model with device mapping
         if device_map == "auto":
-            logger.info("Loading model with automatic device mapping for partial GPU offloading")
+            logger.info("Loading model with CUDA and sequential RAM offloading")
+            # Calculate dynamic memory allocation
+            gpu_available_gb = gpu_free_memory * 0.8 / (1024**3)  # 80% of free GPU memory
+            ram_available_gb = system_memory * 0.4 / (1024**3)  # 40% of total RAM
+            
             model = AutoModelForCausalLM.from_pretrained(
                 model_path,
                 torch_dtype=default_dtype,
                 trust_remote_code=True,
                 low_cpu_mem_usage=True,
                 device_map="auto",
-                max_memory={0: "6GiB", "cpu": "16GiB"},  # Conservative GPU allocation
+                max_memory={
+                    0: f"{gpu_available_gb:.1f}GiB",
+                    "cpu": f"{ram_available_gb:.1f}GiB"
+                },
                 offload_folder="./offload",
-                offload_state_dict=True
+                offload_state_dict=True,
+                attn_implementation="eager"  # Disable flash attention to avoid compilation issues
             )
         else:
-            # CPU-only loading
+            # CPU-only loading (fallback only)
             model = AutoModelForCausalLM.from_pretrained(
                 model_path,
-                torch_dtype=default_dtype,
+                torch_dtype=torch.float32,  # Use float32 for CPU
                 trust_remote_code=True,
                 low_cpu_mem_usage=True,
-                device_map=device_map
+                device_map="cpu",
+                attn_implementation="eager"  # Disable flash attention to avoid compilation issues
             )
         
         # Log device distribution
@@ -133,23 +132,36 @@ def load_model_and_tokenizer(model_name_or_path: str, model_path: str):
                     tokenizer.pad_token = tokenizer.eos_token
 
                 if device_map == "auto":
+                    # Use dynamic memory allocation for fallback too
+                    gpu_memory = torch.cuda.get_device_properties(0).total_memory
+                    gpu_free_memory = torch.cuda.mem_get_info()[0]
+                    system_memory = psutil.virtual_memory().total
+                    
+                    gpu_available_gb = gpu_free_memory * 0.8 / (1024**3)
+                    ram_available_gb = system_memory * 0.4 / (1024**3)
+                    
                     model = AutoModelForCausalLM.from_pretrained(
                         model_name_or_path,
                         torch_dtype=default_dtype,
                         trust_remote_code=True,
                         low_cpu_mem_usage=True,
                         device_map="auto",
-                        max_memory={0: "6GiB", "cpu": "16GiB"},
+                        max_memory={
+                            0: f"{gpu_available_gb:.1f}GiB",
+                            "cpu": f"{ram_available_gb:.1f}GiB"
+                        },
                         offload_folder="./offload",
-                        offload_state_dict=True
+                        offload_state_dict=True,
+                        attn_implementation="eager"  # Disable flash attention to avoid compilation issues
                     )
                 else:
                     model = AutoModelForCausalLM.from_pretrained(
                         model_name_or_path,
-                        torch_dtype=default_dtype,
+                        torch_dtype=torch.float32,
                         trust_remote_code=True,
                         low_cpu_mem_usage=True,
-                        device_map=device_map
+                        device_map="cpu",
+                        attn_implementation="eager"  # Disable flash attention to avoid compilation issues
                     )
                 
                 logger.info(f"Chat model and tokenizer loaded from HuggingFace: {model_name_or_path}")
@@ -160,40 +172,28 @@ def load_model_and_tokenizer(model_name_or_path: str, model_path: str):
         return None, None
 
 def get_generation_pipeline(model, tokenizer, device: str):
-    """Creates a generation pipeline optimized for multi-device models."""
+    """Creates a generation pipeline optimized for sequential offloading models."""
     try:
         logger.info(f"Creating generation pipeline for device: {device}")
         
-        # Check if model is distributed across devices
+        # Check if model is distributed across devices (sequential offloading)
         if hasattr(model, 'hf_device_map'):
-            logger.info("Model is distributed across devices, using multi-device pipeline")
-            # For distributed models, don't specify a device - let the pipeline handle it
+            logger.info("Model uses sequential offloading, creating distributed pipeline")
+            # For models with sequential offloading, create pipeline without device specification
             gen_pipeline = pipeline(
                 "text-generation",
                 model=model,
                 tokenizer=tokenizer,
                 torch_dtype=model.dtype,
-                device_map=model.hf_device_map
+                trust_remote_code=True
             )
         else:
-            # Single device model - handle normally
-            if device == "cuda" and torch.cuda.is_available():
-                # Check if model is already on GPU
-                model_device = next(model.parameters()).device
-                if "cuda" not in str(model_device):
-                    logger.info(f"Moving model to {device}")
-                    model.to(device)
-                
+            # Single device model - use CUDA if available
+            if torch.cuda.is_available():
                 device_id = 0
                 dtype = model.dtype
-                logger.info(f"Using GPU pipeline with dtype: {dtype}")
+                logger.info(f"Using CUDA pipeline with dtype: {dtype}")
             else:
-                # CPU pipeline
-                model_device = next(model.parameters()).device
-                if "cpu" not in str(model_device):
-                    logger.info("Moving model to CPU")
-                    model.to("cpu")
-                
                 device_id = -1
                 dtype = model.dtype
                 logger.info(f"Using CPU pipeline with dtype: {dtype}")
@@ -203,7 +203,8 @@ def get_generation_pipeline(model, tokenizer, device: str):
                 model=model,
                 tokenizer=tokenizer,
                 device=device_id,
-                torch_dtype=dtype
+                torch_dtype=dtype,
+                trust_remote_code=True
             )
         
         logger.info("Generation pipeline created successfully")
@@ -213,11 +214,11 @@ def get_generation_pipeline(model, tokenizer, device: str):
         return None
 
 def move_model_to_device(model, device: str):
-    """Moves the model to the specified device, handling multi-device models."""
+    """Moves the model to the specified device, handling sequential offloading models."""
     try:
-        # Check if model is distributed across devices
+        # Check if model uses sequential offloading
         if hasattr(model, 'hf_device_map'):
-            logger.info("Model is distributed across devices - device moves not applicable")
+            logger.info("Model uses sequential offloading - no manual device moves needed")
             return True
         
         current_device = next(model.parameters()).device
@@ -229,23 +230,16 @@ def move_model_to_device(model, device: str):
             logger.info(f"Model already on {device}, no move needed")
             return True
         
-        # Handle GPU memory management
+        # For CUDA moves, ensure we have CUDA available
         if device == "cuda" and torch.cuda.is_available():
-            # Clear cache and check available memory
             torch.cuda.empty_cache()
             memory_free = torch.cuda.mem_get_info()[0]
             memory_total = torch.cuda.mem_get_info()[1]
             logger.info(f"GPU memory: {memory_free / 1024**3:.1f}GB free / {memory_total / 1024**3:.1f}GB total")
-            
-            # For large models, warn but don't fail - partial offloading might be in use
-            model_params = sum(p.numel() for p in model.parameters())
-            estimated_memory = model_params * 2  # 2 bytes per parameter for float16
-            
-            if memory_free < estimated_memory * 1.2:  # Add 20% buffer
-                logger.warning(f"May have insufficient GPU memory. Need ~{estimated_memory * 1.2 / 1024**3:.1f}GB, have {memory_free / 1024**3:.1f}GB")
-                logger.info("Attempting move anyway - partial offloading may be in use")
-            
-            logger.info("Cleared CUDA cache before model transfer")
+            logger.info("Moving model to CUDA with potential RAM offloading")
+        elif device == "cuda" and not torch.cuda.is_available():
+            logger.warning("CUDA requested but not available, keeping on CPU")
+            return False
         
         model.to(device)
         

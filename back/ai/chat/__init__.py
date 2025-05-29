@@ -121,13 +121,8 @@ class ChatAI:
         """
         Format conversation messages for the model using tokenizer's chat template.
         """
-        # Create system message with prompts
-        system_prompt_content = f"You should follow these instructions: {positive_system_prompt}\n\nYou should never do these things: {negative_system_prompt}"
-        
         # Build chat messages in the format expected by the tokenizer
-        chat_messages = [
-            {"role": "system", "content": system_prompt_content}
-        ]
+        chat_messages = []
         
         # Add conversation messages
         for message in messages:
@@ -137,8 +132,12 @@ class ChatAI:
                 chat_messages.append({"role": role, "content": content})
         
         # Use tokenizer's chat template if available
-        if hasattr(self.tokenizer, 'apply_chat_template') and self.tokenizer.chat_template:
+        if (self.tokenizer is not None and 
+            hasattr(self.tokenizer, 'apply_chat_template') and 
+            hasattr(self.tokenizer, 'chat_template') and 
+            self.tokenizer.chat_template is not None):
             try:
+                # For Gemma3, don't include system messages in chat template
                 formatted_text = self.tokenizer.apply_chat_template(
                     chat_messages, 
                     tokenize=False, 
@@ -150,12 +149,15 @@ class ChatAI:
         
         # Fallback to manual formatting
         formatted_messages_list = []
+        
+        # Add system prompt as instruction prefix
+        system_prompt_content = f"You should follow these instructions: {positive_system_prompt}\n\nYou should never do these things: {negative_system_prompt}"
+        formatted_messages_list.append(f"Instructions: {system_prompt_content}")
+        
         for message in chat_messages:
             role = message["role"]
             content = message["content"]
-            if role == "system":
-                formatted_messages_list.append(f"System: {content}")
-            elif role == "user":
+            if role == "user":
                 formatted_messages_list.append(f"User: {content}")
             elif role == "assistant":
                 formatted_messages_list.append(f"Assistant: {content}")
@@ -261,6 +263,11 @@ class ChatAI:
             if "CUDA" in error_str:
                 logger.warning(f"CUDA error encountered: {error_str}")
                 
+                # Clear CUDA cache first
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                    torch.cuda.synchronize()
+                
                 if not self.uses_distributed_model:
                     logger.info("Attempting fallback to CPU generation...")
                     try:
@@ -329,6 +336,8 @@ class ChatAI:
                             logger.info("Model moved back to CPU successfully")
                 except Exception as move_e:
                     logger.warning(f"Error moving model back to CPU: {move_e}")
+
+
 
 # --- Global Instance and Accessor Functions ---
 _chat_ai_instance: Optional[ChatAI] = None

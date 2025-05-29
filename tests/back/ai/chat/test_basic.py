@@ -56,8 +56,12 @@ def test_basic_functionality(setup_chat_ai, test_case):
     # Build conversation history
     conversation_history = build_conversation_history(test_case)
     
-    # Generate a response using the actual model with short tokens for speed
-    response = generate_ai_text(conversation_history=conversation_history, max_new_tokens=5)
+    # Generate a response using the actual model - use more tokens for factual questions
+    if test_case['name'] == 'factual_knowledge':
+        max_tokens = 10  # Need more tokens for complete factual answers
+    else:
+        max_tokens = 5   # Short tokens for speed on other tests
+    response = generate_ai_text(conversation_history=conversation_history, max_new_tokens=max_tokens)
     
     # Log response for debugging
     if response.get("success", False):
