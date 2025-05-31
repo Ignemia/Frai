@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for Frai
 # Stage 1: Builder stage for dependencies
-FROM python:3.12-slim as builder
+FROM python:3.13-slim as builder
 
 # Set environment variables for build
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -24,7 +24,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Stage 2: Runtime stage
-FROM python:3.12-slim as runtime
+FROM python:3.13-slim as runtime
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
