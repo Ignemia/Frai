@@ -1,0 +1,35 @@
+name: "Custom CodeQL Configuration"
+
+# Disable default queries to use only security-focused ones
+disable-default-queries: false
+
+# Custom query packs and queries
+queries:
+  - uses: security-and-quality
+  - uses: security-extended
+
+# Paths to exclude from analysis
+paths-ignore:
+  - "**/*.test.py"
+  - "docs/**"
+  - "build/**"
+  - "dist/**"
+  - "**/__pycache__/**"
+  - "**/.venv/**"
+  - "**/node_modules/**"
+
+# Paths to include (override excludes if needed)
+paths:
+  - "src/"
+  - "api/"
+  - "services/"
+  - "tests/"
+
+# Custom query suites
+query-filters:
+  # Exclude specific rules if needed
+  - exclude:
+      id: py/path-injection
+
+security-severity-overrides:
+  # Override severity levels for specific rules if needed

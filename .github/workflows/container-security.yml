@@ -1,0 +1,190 @@
+name: "Container Security Scanning"
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+    paths:
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - ".dockerignore"
+  pull_request:
+    branches: [ "main", "develop" ]
+    paths:
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - ".dockerignore"
+  schedule:
+    # Run security scan weekly on Fridays at 6 AM UTC
+    - cron: '0 6 * * 5'
+  workflow_dispatch:
+
+jobs:
+  # Dockerfile security scanning
+  dockerfile-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Hadolint (Dockerfile linter)
+      uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: Dockerfile
+        format: sarif
+        output-file: hadolint-results.sarif
+        no-fail: true
+
+    - name: Upload Hadolint SARIF results
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: hadolint-results.sarif
+        category: "hadolint"
+      if: always()
+
+    - name: Run Checkov (IaC security scanner)
+      id: checkov
+      uses: bridgecrewio/checkov-action@master
+      with:
+        directory: .
+        framework: dockerfile
+        output_format: sarif
+        output_file_path: checkov-results.sarif
+        quiet: true
+        soft_fail: true
+
+    - name: Upload Checkov SARIF results
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: checkov-results.sarif
+        category: "checkov"
+      if: always()
+
+  # Container image security scanning
+  image-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image for scanning
+      run: |
+        docker build -t frai:scan .
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'personal-chatter:scan'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH,MEDIUM'
+
+    - name: Upload Trivy SARIF results
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: trivy-results.sarif
+        category: "trivy"
+      if: always()
+
+    - name: Run Grype vulnerability scanner
+      uses: anchore/scan-action@v3
+      id: grype-scan
+      with:
+        image: 'personal-chatter:scan'
+        fail-build: false
+        severity-cutoff: high
+        output-format: sarif
+
+    - name: Upload Grype SARIF results
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ steps.grype-scan.outputs.sarif }}
+        category: "grype"
+      if: always()
+
+    - name: Run Snyk Container scan
+      continue-on-error: true
+      uses: snyk/actions/docker@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        image: 'personal-chatter:scan'
+        args: --file=Dockerfile --severity-threshold=high --sarif-file-output=snyk-results.sarif
+
+    - name: Upload Snyk SARIF results
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: snyk-results.sarif
+        category: "snyk"
+      if: always()
+
+  # Docker Compose security validation
+  compose-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Checkov on Docker Compose
+      uses: bridgecrewio/checkov-action@master
+      with:
+        directory: .
+        framework: docker_compose
+        output_format: sarif
+        output_file_path: compose-checkov-results.sarif
+        quiet: true
+        soft_fail: true
+
+    - name: Upload Docker Compose Checkov SARIF results
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: compose-checkov-results.sarif
+        category: "checkov-compose"
+      if: always()
+
+    - name: Validate Docker Compose configuration
+      run: |
+        docker compose config --quiet
+        
+    - name: Check for security best practices
+      run: |
+        echo "Checking Docker Compose security best practices..."
+        
+        # Check for host network mode
+        if grep -q "network_mode.*host" docker-compose.yml; then
+          echo "⚠️  Warning: Host network mode detected - review security implications"
+        fi
+        
+        # Check for privileged containers
+        if grep -q "privileged.*true" docker-compose.yml; then
+          echo "⚠️  Warning: Privileged containers detected - review security implications"
+        fi
+        
+        # Check for bind mounts to sensitive directories
+        if grep -E "/proc|/sys|/dev" docker-compose.yml; then
+          echo "⚠️  Warning: Sensitive directory mounts detected - review security implications"
+        fi
+        
+        echo "✅ Docker Compose security check completed"
+
+  # Security summary report
+  security-summary:
+    runs-on: ubuntu-latest
+    needs: [dockerfile-scan, image-scan, compose-scan]
+    if: always()
+    steps:
+    - name: Generate Security Summary
+      run: |
+        echo "## 🔒 Container Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Scanner | Status | Description |" >> $GITHUB_STEP_SUMMARY
+        echo "|---------|--------|-------------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Hadolint | ${{ needs.dockerfile-scan.result }} | Dockerfile best practices |" >> $GITHUB_STEP_SUMMARY
+        echo "| Checkov | ${{ needs.dockerfile-scan.result }} | Infrastructure as Code security |" >> $GITHUB_STEP_SUMMARY
+        echo "| Trivy | ${{ needs.image-scan.result }} | Container vulnerability scanning |" >> $GITHUB_STEP_SUMMARY
+        echo "| Grype | ${{ needs.image-scan.result }} | Container vulnerability scanning |" >> $GITHUB_STEP_SUMMARY
+        echo "| Docker Compose | ${{ needs.compose-scan.result }} | Compose configuration security |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "All security findings have been uploaded to the Security tab." >> $GITHUB_STEP_SUMMARY

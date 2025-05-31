@@ -1,0 +1,150 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "frai"
+version = "0.1.0"  # Use static version instead of dynamic
+description = "AI-powered chat and image generation system"
+readme = "readme.md"
+license = {text = "MIT"}
+requires-python = ">=3.12"
+authors = [{name = "Frai Team", email = "personal-chatter@example.com"}]
+keywords = ["ai", "chat", "image-generation", "llm"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    # Core framework dependencies
+    "accelerate>=0.25.0",
+    "bcrypt>=4.0.0",
+    "diffusers>=0.20.0",
+    "email-validator>=2.0.0",
+    "fastapi>=0.100.0",
+    "httptools>=0.6.0",
+    "inquirerpy>=0.3.0",
+    "langchain>=0.1.0",
+    "langchain-community>=0.0.20",
+    "passlib>=1.7.0",
+    "pip-chill",
+    "protobuf>=3.20.0",
+    "psycopg2-binary>=2.9.0",
+    "pydantic[email]>=2.0.0",
+    "pyjwt>=2.8.0",
+    "python-dotenv>=1.0.0",
+    "python-jose>=3.3.0",
+    "python-multipart>=0.0.6",
+    "sqlalchemy>=2.0.0",
+    "transformers>=4.30.0",
+    "uvicorn[standard]>=0.23.0",
+    "watchfiles>=0.19.0",
+    "websockets>=11.0.0",
+    
+    # Note: torch, torchvision, torchaudio installed separately by install.py
+    # Note: Optional dependencies managed separately for Python 3.13+ compatibility
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0"
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "pytest-benchmark>=4.0.0"
+]
+# Optional ML/AI dependencies (installed separately for compatibility)
+ml = [
+    "sentence-transformers>=2.2.0",
+    "chromadb>=0.4.0",
+    "ctransformers>=0.2.0",
+    "xformers",  # GPU acceleration (CUDA only)
+]
+# TensorFlow/Keras support (compatibility issues with Python 3.13)
+tensorflow = [
+    "tf-keras>=2.13.0",
+    "tensorflow>=2.13.0",
+]
+# Vector database alternatives
+vectordb = [
+    "faiss-cpu>=1.7.0",  # Alternative to chromadb
+    "hnswlib>=0.7.0",    # Another vector search option
+]
+
+[project.scripts]
+frai = "main:main"
+frai-chat = "main:main"
+
+[project.urls]
+Homepage = "https://github.com/Ignemia/Frai"
+Repository = "https://github.com/Ignemia/Frai"
+
+[tool.setuptools.packages.find]
+where = ["."]  # Look in the current directory
+include = ["back*", "front*", "orchestrator*"]
+exclude = ["tests*", "docs*", "examples*", "*.tests", "*.tests.*", "tests.*", "build*", "dist*"]
+
+# Python 3.13 Compatibility Notes:
+# Some packages may not have pre-built wheels for Python 3.13.
+# Use install.py script for proper dependency management.
+# For manual installation of problematic packages:
+# - sentencepiece: requires cmake and pkg-config
+# - chromadb: may have build dependencies  
+# - tf-keras: use tensorflow[keras] alternative
+# Recommended: Use Python 3.12 for full compatibility
+
+[tool.black]
+line-length = 88
+target-version = ['py312']
+
+[tool.isort]
+profile = "black"
+line-length = 88
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+select = ["E", "W", "F", "I", "B", "UP"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "--strict-markers",
+    "--cov=back",
+    "--cov=front", 
+    "--cov=orchestrator",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--tb=short"
+]
+testpaths = ["tests"]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests", 
+    "performance: Performance tests",
+    "slow: Slow running tests",
+    "gpu: Tests requiring GPU",
+    "optional: Tests for optional dependencies"
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning:torch.*",
+]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+warn_return_any = true
+warn_unused_configs = true

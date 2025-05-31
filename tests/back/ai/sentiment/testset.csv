@@ -1,0 +1,26 @@
+id,name,description,input_text,expected_range,evaluation_method
+sa-1,positive_basic,Basic positive sentiment test,I love this amazing product!,<0.6;1>,automated
+sa-2,negative_basic,Basic negative sentiment test,This is absolutely terrible and disappointing.,<-1;-0.6>,automated
+sa-3,neutral_basic,Basic neutral sentiment test,The weather is cloudy today.,<-0.1;0.1>,automated
+sa-4,very_positive,Extremely positive sentiment,This is the best day of my life! I'm incredibly happy and grateful!,<0.8;1>,automated
+sa-5,very_negative,Extremely negative sentiment,I hate everything about this horrible experience. It ruined my entire day.,<-1;-0.8>,automated
+sa-6,mixed_sentiment,Mixed positive and negative sentiment,The movie had great visuals but the plot was disappointing.,<-0.3;0.3>,automated
+sa-7,sarcasm_positive,Sarcastic positive statement,Oh great! Another traffic jam. Just what I needed today.,<-0.8;-0.2>,automated
+sa-8,sarcasm_negative,Sarcastic negative statement,Well that went perfectly! Not like I expected it to fail anyway.,<-0.6;0.2>,automated
+sa-9,neutral_factual,Factual neutral statement,The meeting is scheduled for 3 PM on Tuesday.,<-0.05;0.05>,automated
+sa-10,subtle_positive,Subtly positive sentiment,It wasn't bad at all. Actually quite decent.,<0.1;0.5>,automated
+sa-11,subtle_negative,Subtly negative sentiment,It could have been better. Not really what I expected.,<-0.5;-0.1>,automated
+sa-12,empty_string,Empty input test,,<-0.05;0.05>,automated
+sa-13,single_word_positive,Single positive word,Excellent!,<0.7;1>,automated
+sa-14,single_word_negative,Single negative word,Terrible!,<-1;-0.7>,automated
+sa-15,medical_positive,Medical domain positive,The patient's recovery is progressing remarkably well.,<0.5;0.9>,automated
+sa-16,medical_negative,Medical domain negative,The patient's condition has deteriorated significantly.,<-0.9;-0.5>,automated
+sa-17,financial_positive,Financial domain positive,The stock market showed strong gains today.,<0.4;0.8>,automated
+sa-18,financial_negative,Financial domain negative,The company reported massive losses this quarter.,<-0.8;-0.4>,automated
+sa-19,long_text_positive,Long positive text,I had the most wonderful experience at this restaurant. The food was absolutely delicious and the service was impeccable. The atmosphere was perfect and the staff went above and beyond to make our evening special. I would definitely recommend this place to anyone looking for an amazing dining experience.,<0.7;1>,automated
+sa-20,long_text_negative,Long negative text,This was by far the worst experience I've ever had. The service was incredibly slow and the food was cold when it finally arrived. The staff was rude and unhelpful throughout the entire evening. The prices were outrageous for such poor quality. I will never return to this establishment.,<-1;-0.7>,automated
+sa-21,boundary_upper_positive,Upper boundary positive test,This is really good and I'm quite satisfied with it.,<0.59;0.61>,automated
+sa-22,boundary_lower_negative,Lower boundary negative test,This is pretty bad and quite disappointing overall.,<-0.61;-0.59>,automated
+sa-23,punctuation_heavy,Heavy punctuation test,Wow!!! This is... amazing??? Really??? I can't believe it!!!,<0.3;0.8>,automated
+sa-24,numbers_and_text,Text with numbers,I rate this 10 out of 10! Absolutely perfect score.,<0.8;1>,automated
+sa-25,special_characters,Special characters test,@#$% this is so frustrating! Why can't anything work properly?,<-0.8;-0.3>,automated

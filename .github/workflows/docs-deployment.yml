@@ -1,0 +1,252 @@
+name: "Documentation Deployment"
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "docs/**"
+      - "readme.md"
+      - "CHANGELOG.md"
+      - "CONTRIBUTING.md"
+      - "SECURITY.md"
+      - "**/*.md"
+      - "pyproject.toml"
+  workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 'Force rebuild all documentation'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  # Build documentation
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for proper git info
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-docs-${{ hashFiles('**/requirements-docs.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-docs-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        # Install documentation dependencies
+        pip install mkdocs mkdocs-material mkdocs-mermaid2-plugin mkdocs-git-revision-date-localized-plugin
+        pip install mkdocstrings mkdocstrings-python pydoc-markdown
+
+    - name: Auto-generate API documentation
+      run: |
+        # Generate API documentation from docstrings
+        mkdir -p docs/api
+        
+        # Generate documentation for main modules
+        python -c "import pydoc; import os; [pydoc.writedoc(os.path.join(root, file[:-3]).replace('/', '.')) for module in ['api', 'services'] if os.path.exists(module) for root, dirs, files in os.walk(module) for file in files if file.endswith('.py') and not file.startswith('_')]"
+
+    - name: Build MkDocs site
+      run: |
+        # Check if mkdocs.yml exists, create basic one if not
+        if [ ! -f mkdocs.yml ]; then
+          cat > mkdocs.yml << EOF
+        site_name: Frai Documentation
+        site_description: AI-powered Personal Assistant with Image Generation
+        site_url: https://your-org.github.io/personal-chatter
+        repo_url: https://github.com/your-org/personal-chatter
+        repo_name: your-org/personal-chatter
+        
+        nav:
+          - Home: index.md
+          - Installation: installation.md
+          - API Reference: api/
+          - Contributing: contributing.md
+          - Changelog: changelog.md
+          - Security: security.md
+        
+        theme:
+          name: material
+          palette:
+            - scheme: default
+              primary: blue
+              accent: blue
+              toggle:
+                icon: material/brightness-7 
+                name: Switch to dark mode
+            - scheme: slate
+              primary: blue
+              accent: blue
+              toggle:
+                icon: material/brightness-4
+                name: Switch to light mode
+          features:
+            - navigation.tabs
+            - navigation.sections
+            - navigation.expand
+            - search.highlight
+            - content.code.copy
+        
+        plugins:
+          - search
+          - git-revision-date-localized
+          - mermaid2
+        
+        markdown_extensions:
+          - pymdownx.highlight
+          - pymdownx.superfences
+          - pymdownx.tabbed
+          - admonition
+          - codehilite
+          - toc:
+              permalink: true
+        
+        extra:
+          social:
+            - icon: fontawesome/brands/github
+              link: https://github.com/your-org/personal-chatter
+        EOF
+        fi
+        
+        # Create docs directory structure if it doesn't exist
+        mkdir -p docs
+        
+        # Copy main documentation files if they don't exist in docs/
+        [ ! -f docs/index.md ] && cp readme.md docs/index.md
+        [ ! -f docs/contributing.md ] && cp CONTRIBUTING.md docs/contributing.md
+        [ ! -f docs/changelog.md ] && cp CHANGELOG.md docs/changelog.md
+        [ ! -f docs/security.md ] && cp SECURITY.md docs/security.md
+        
+        # Create installation guide if it doesn't exist
+        if [ ! -f docs/installation.md ]; then
+          cat > docs/installation.md << 'EOF'
+        # Installation Guide
+        
+        ## Quick Start
+        
+        ```bash
+        pip install personal-chatter
+        ```
+        
+        ## Development Installation
+        
+        ```bash
+        git clone https://github.com/your-org/personal-chatter.git
+        cd personal-chatter
+        pip install -r requirements-dev.txt
+        ```
+        
+        For more details, see the [README](index.md).
+        EOF
+        fi
+        
+        # Build the documentation
+        mkdocs build --strict
+
+    - name: Upload documentation artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: documentation
+        path: site/
+        retention-days: 30
+
+  # Deploy to GitHub Pages
+  deploy-github-pages:
+    runs-on: ubuntu-latest
+    needs: build-docs
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+      
+    steps:
+    - name: Download documentation artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: documentation
+        path: site/
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+
+    - name: Upload to GitHub Pages
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: site/
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+  # Deploy to external hosting (optional)
+  deploy-external:
+    runs-on: ubuntu-latest
+    needs: build-docs
+    if: github.ref == 'refs/heads/main' && false  # Disabled by default
+    steps:
+    - name: Download documentation artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: documentation
+        path: site/
+
+    # Example: Deploy to S3
+    - name: Deploy to S3
+      if: false  # Disabled - configure as needed
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: us-east-1
+      run: |
+        aws s3 sync site/ s3://your-docs-bucket --delete
+
+    # Example: Deploy to Netlify
+    - name: Deploy to Netlify
+      if: false  # Disabled - configure as needed
+      uses: nwtgck/actions-netlify@v2.0
+      with:
+        publish-dir: './site'
+        production-branch: main
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        deploy-message: "Deploy from GitHub Actions"
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+  # Update documentation status
+  update-status:
+    runs-on: ubuntu-latest
+    needs: [build-docs, deploy-github-pages]
+    if: always()
+    steps:
+    - name: Documentation deployment summary
+      run: |
+        echo "## 📚 Documentation Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Task | Status | Details |" >> $GITHUB_STEP_SUMMARY
+        echo "|------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Build Documentation | ${{ needs.build-docs.result }} | MkDocs build process |" >> $GITHUB_STEP_SUMMARY
+        echo "| Deploy to GitHub Pages | ${{ needs.deploy-github-pages.result }} | Public documentation site |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ needs.deploy-github-pages.result }}" == "success" ]; then
+          echo "✅ Documentation successfully deployed to GitHub Pages" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 Visit: https://your-org.github.io/personal-chatter" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Documentation deployment failed - check logs for details" >> $GITHUB_STEP_SUMMARY
+        fi

@@ -1,0 +1,105 @@
+# Dependabot configuration for Frai
+# Automatically updates dependencies and creates pull requests
+
+version: 2
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "andyo"  # Replace with actual username
+    assignees:
+      - "andyo"  # Replace with actual username
+    commit-message:
+      prefix: "⬆️"
+      prefix-development: "⬆️ dev"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    ignore:
+      # Ignore major version updates for critical dependencies
+      - dependency-name: "torch"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "transformers"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "diffusers"
+        update-types: ["version-update:semver-major"]
+    groups:
+      # Group related dependencies together
+      ai-deps:
+        patterns:
+          - "torch*"
+          - "transformers"
+          - "diffusers"
+          - "accelerate"
+          - "safetensors"
+      testing-deps:
+        patterns:
+          - "pytest*"
+          - "*test*"
+      linting-deps:
+        patterns:
+          - "black"
+          - "isort"
+          - "ruff"
+          - "mypy"
+          - "bandit"
+      dev-deps:
+        patterns:
+          - "pre-commit"
+          - "build"
+          - "twine"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "andyo"  # Replace with actual username
+    commit-message:
+      prefix: "🐳"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "andyo"  # Replace with actual username
+    commit-message:
+      prefix: "⚙️"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+# Security updates
+# Dependabot will automatically create security update PRs
+# regardless of the above schedule settings
