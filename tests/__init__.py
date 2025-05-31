@@ -1,22 +1,8 @@
-# Tests package for personal-chatter application
 """
-Test suite for the personal-chatter application.
+Comprehensive Test Suite for Frai Chat System
 
-This package contains:
-- unit: Unit tests for individual components
-- integration: Integration tests for component interactions
-- implementation: Implementation-specific tests
-- blackbox: End-to-end blackbox tests
-- performance: Performance and load tests
-- fixtures: Test data and fixtures
-- utils: Test utilities and helpers
+This test package provides smoke tests, blackbox tests, and integration tests
+for the chat moderation and orchestration system.
 """
 
-import sys
-import os
-from pathlib import Path
-
-# Add the project root to Python path for imports
-project_root = Path(__file__).parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
+__version__ = "1.0.0"

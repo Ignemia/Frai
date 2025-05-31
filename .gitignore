@@ -12,6 +12,8 @@ secret.env
 
 # Python
 __pycache__/
+.pytest*
+.benchmarks*
 *.py[cod]
 *$py.class
 *.so
@@ -54,3 +56,11 @@ Thumbs.db
 # self-build
 frai/
 frai/**/*
+
+# old structure
+old*
+*output*
+*.out
+*.output
+*.log
+*.log.*

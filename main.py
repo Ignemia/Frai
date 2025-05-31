@@ -1,164 +1,82 @@
-import dotenv
-dotenv.load_dotenv()
-
-import logging
 import sys
-import threading
-import argparse
-from pathlib import Path
+import logging
 
-from services.database.connection import start_engine, init_database
-from services.chat.model_loader import load_model
-from services.cli.cli_handler import start_cli_interface
-from api.api import start_backend_api
 
-# Setup logging
+from back.ai import load_chat_model, load_image_model, load_speech_recognition_model, load_text_to_speech_model, load_voice_activity_detection_model
+from back.database import initiate_database_connection, test_database_connection
+from front import initiate_cli, initiate_api
+from orchestrator import initiate_orchestrator_layer
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
 logger = logging.getLogger(__name__)
-
-def run_tests(test_args: list = None):
-    """
-    Run the comprehensive test suite using the test orchestrator.
-    
-    Args:
-        test_args: Additional arguments to pass to the test orchestrator
-    """
-    logger.info("Starting comprehensive test suite...")
-    
-    try:
-        # Import and run test orchestrator
-        from tests.test_orchestrator import TestOrchestrator
-        
-        project_root = Path(__file__).parent
-        orchestrator = TestOrchestrator(project_root)
-        
-        # Parse test arguments
-        test_type = "all"
-        extra_args = []
-        
-        if test_args:
-            if test_args[0] in ["all", "unit", "integration", "implementation", 
-                               "blackbox", "performance", "demo", "quick", "ci"]:
-                test_type = test_args[0]
-                extra_args = test_args[1:]
-            else:
-                extra_args = test_args
-        
-        # Execute tests
-        success = orchestrator.execute_test_suite(test_type, extra_args)
-        
-        if success:
-            logger.info("All tests completed successfully!")
-            print("\n🎉 All tests passed! The system is ready for use.")
-            return 0
-        else:
-            logger.error("Some tests failed. Check the output above for details.")
-            print("\n❌ Some tests failed. Please review the results above.")
-            return 1
-            
-    except ImportError as e:
-        logger.error(f"Could not import test orchestrator: {e}")
-        print("Error: Test system not properly installed. Please check your installation.")
-        return 1
-    except Exception as e:
-        logger.error(f"Error during test execution: {e}", exc_info=True)
-        print(f"Error: Test execution failed: {e}")
-        return 1
-
-def parse_arguments():
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(
-        description="Frai - AI-powered chat and image generation system",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-    python main.py                    # Start the application normally
-    python main.py tests              # Run all tests and demos
-    python main.py tests unit         # Run only unit tests
-    python main.py tests quick        # Run quick smoke tests
-    python main.py tests demo         # Run demonstration workflows
-    python main.py tests --coverage   # Run tests with coverage reporting
-        """
-    )
-    
-    parser.add_argument(
-        "command",
-        nargs="?",
-        default="run",
-        help="Command to execute: 'run' (default) or 'tests'"
-    )
-    
-    parser.add_argument(
-        "test_args",
-        nargs="*",
-        help="Additional arguments for test command"
-    )
-    
-    return parser.parse_args()
+logger.info("Logging is set up.")
 
 def main():
-    """
-    Main orchestration function for the Personal Chatter application.
-    Handles both normal application startup and test execution.
-    """
-    # Parse command line arguments
-    args = parse_arguments()
-    
-    # Handle test command
-    if args.command == "tests":
-        logger.info("Test mode requested...")
-        return run_tests(args.test_args)
-    
-    # Normal application startup
-    logger.info("Starting Personal Chatter application...")
-
-    # Initialize database
-    logger.info("Initializing database...")
-    if not start_engine():  # start_engine now also handles init_database logic or should be separate
-        logger.critical("Failed to establish database engine. Exiting.")
-        print("Critical: Database engine could not be initialized. Application cannot start.")
-        return 1  # Use return codes for errors
-    
-    if not init_database():
-        logger.critical("Database initialization failed. Exiting.")
-        print("Critical: Database could not be initialized. Application cannot start.")
+    try:
+        # backend initiatior
+        logger.info("Initiating database connection...")
+        if not initiate_database_connection():
+            logger.error("Failed to initiate database connection.")
+            return 1
+        logger.info("Database connection initiated.")
+        logger.info("Testing database connection...")
+        if not test_database_connection():
+            logger.error("Database connection test failed.")
+            return 1
+        logger.info("Database connection test successful.")
+        
+        logger.info("Loading chat model...")
+        if not load_chat_model():
+            logger.error("Failed to load chat model.")
+            return 1
+        logger.info("Chat model loaded.")
+        logger.info("Loading image model...")
+        if not load_image_model():
+            logger.error("Failed to load image model.")
+            return 1
+        logger.info("Image model loaded.")
+        logger.info("Loading voice activity detection model...")
+        if not load_voice_activity_detection_model():
+            logger.error("Failed to load voice activity detection model.")
+            return 1
+        logger.info("Voice activity detection model loaded.")
+        logger.info("Loading speech recognition model...")
+        if not load_speech_recognition_model():
+            logger.error("Failed to load speech recognition model.")
+            return 1
+        logger.info("Speech recognition model loaded.")
+        logger.info("Loading text to speech model...")
+        if not load_text_to_speech_model():
+            logger.error("Failed to load text to speech model.")
+            return 1
+        logger.info("Text to speech model loaded.")
+        
+        # orchestrator initiator
+        logger.info("Initiating orchestrator layer...")
+        if not initiate_orchestrator_layer():
+            logger.error("Failed to initiate orchestrator layer.")
+            return 1
+        logger.info("Orchestrator layer initiated.")
+        
+        # cli and api initiator
+        logger.info("Initiating CLI...")
+        if not initiate_cli():
+            logger.error("Failed to initiate CLI.")
+            return 1
+        logger.info("CLI initiated.")
+        logger.info("Initiating API...")
+        if not initiate_api():
+            logger.error("Failed to initiate API.")
+            return 1
+        logger.info("API initiated.")
+        logger.info("Application started successfully.")
+    except Exception as e:
+        logger.error(f"An error occurred during application startup: {e}", exc_info=True)
+        print(f"An error occurred: {e}")
         return 1
-
-    # Load the AI model
-    logger.info("Loading AI model...")
-    try:
-        load_model()
-        logger.info("AI model loaded successfully.")
-    except Exception as e:
-        logger.error(f"Failed to load AI model: {e}", exc_info=True)
-        # Depending on criticality, you might choose to exit or continue with limited functionality
-        print("Warning: Failed to load AI model. Some features may not work properly.")
-        # return 1 # Uncomment if model is critical for startup
-
-    # Start API interface in a separate thread
-    logger.info("Starting API interface...")
-    try:
-        # Start API in a separate thread so it doesn't block the CLI
-        api_thread = threading.Thread(target=start_backend_api, daemon=True)
-        api_thread.start()
-        logger.info("API interface started successfully in background thread.")
-        print("API server running at http://0.0.0.0:8000")
-    except Exception as e:
-        logger.error(f"Failed to start API interface: {e}", exc_info=True)
-        print("Warning: API interface could not be started.")
-
-    # Start CLI interface
-    logger.info("Starting CLI interface...")
-    try:
-        start_cli_interface()
-    except Exception as e:
-        logger.critical(f"CLI interface failed to start or crashed: {e}", exc_info=True)
-        print("Critical: The command line interface encountered an error and had to close.")
-        return 1
-
-    logger.info("Personal Chatter application finished.")
-    return 0
+    return 0 
 
 if __name__ == "__main__":
     return_code = main()
-    sys.exit(return_code)  # Exit with the return code from main
+    sys.exit(return_code)

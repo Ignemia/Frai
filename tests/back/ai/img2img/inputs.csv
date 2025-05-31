@@ -1,0 +1,201 @@
+id,group,description,path
+1,portraits,Young woman headshot,Frai/tests/back/ai/img2img/inputs/portraits/young_woman.jpg
+2,portraits,Middle-aged man portrait,Frai/tests/back/ai/img2img/inputs/portraits/middle_aged_man.jpg
+3,portraits,Child portrait smiling,Frai/tests/back/ai/img2img/inputs/portraits/child_smiling.jpg
+4,portraits,Elderly woman portrait,Frai/tests/back/ai/img2img/inputs/portraits/elderly_woman.jpg
+5,portraits,Professional headshot,Frai/tests/back/ai/img2img/inputs/portraits/professional_headshot.jpg
+6,portraits,Teen portrait casual,Frai/tests/back/ai/img2img/inputs/portraits/teen_casual.jpg
+7,portraits,Senior man distinguished,Frai/tests/back/ai/img2img/inputs/portraits/senior_man.jpg
+8,portraits,Young man athlete,Frai/tests/back/ai/img2img/inputs/portraits/young_man_athlete.jpg
+9,portraits,Woman business professional,Frai/tests/back/ai/img2img/inputs/portraits/woman_business.jpg
+10,portraits,Child portrait serious,Frai/tests/back/ai/img2img/inputs/portraits/child_serious.jpg
+11,portraits,Artist creative portrait,Frai/tests/back/ai/img2img/inputs/portraits/artist_creative.jpg
+12,portraits,Student young adult,Frai/tests/back/ai/img2img/inputs/portraits/student_young.jpg
+13,portraits,Mother with gentle expression,Frai/tests/back/ai/img2img/inputs/portraits/mother_gentle.jpg
+14,portraits,Father confident pose,Frai/tests/back/ai/img2img/inputs/portraits/father_confident.jpg
+15,portraits,Grandparent wise expression,Frai/tests/back/ai/img2img/inputs/portraits/grandparent_wise.jpg
+16,landscapes,Mountain landscape snow peaks,Frai/tests/back/ai/img2img/inputs/landscapes/mountain_snow.jpg
+17,landscapes,Beach sunset ocean waves,Frai/tests/back/ai/img2img/inputs/landscapes/beach_sunset.jpg
+18,landscapes,Forest pathway autumn colors,Frai/tests/back/ai/img2img/inputs/landscapes/forest_autumn.jpg
+19,landscapes,Urban cityscape night lights,Frai/tests/back/ai/img2img/inputs/landscapes/city_night.jpg
+20,landscapes,Rural countryside green fields,Frai/tests/back/ai/img2img/inputs/landscapes/countryside_green.jpg
+21,landscapes,Desert landscape sand dunes,Frai/tests/back/ai/img2img/inputs/landscapes/desert_dunes.jpg
+22,landscapes,Lake reflection mountains,Frai/tests/back/ai/img2img/inputs/landscapes/lake_reflection.jpg
+23,landscapes,Rolling hills pastoral,Frai/tests/back/ai/img2img/inputs/landscapes/rolling_hills.jpg
+24,landscapes,Coastal cliffs dramatic,Frai/tests/back/ai/img2img/inputs/landscapes/coastal_cliffs.jpg
+25,landscapes,Valley meadow wildflowers,Frai/tests/back/ai/img2img/inputs/landscapes/valley_meadow.jpg
+26,landscapes,Urban park city view,Frai/tests/back/ai/img2img/inputs/landscapes/urban_park.jpg
+27,landscapes,Tropical island paradise,Frai/tests/back/ai/img2img/inputs/landscapes/tropical_island.jpg
+28,landscapes,Snow covered village,Frai/tests/back/ai/img2img/inputs/landscapes/snow_village.jpg
+29,landscapes,Vineyard rolling landscape,Frai/tests/back/ai/img2img/inputs/landscapes/vineyard_rolling.jpg
+30,landscapes,Canyon rock formations,Frai/tests/back/ai/img2img/inputs/landscapes/canyon_rocks.jpg
+31,art_styles,Monet water lilies impressionist,Frai/tests/back/ai/img2img/inputs/styles/monet_impressionist.jpg
+32,art_styles,Van Gogh starry night post impressionist,Frai/tests/back/ai/img2img/inputs/styles/van_gogh_post.jpg
+33,art_styles,Picasso cubist geometric,Frai/tests/back/ai/img2img/inputs/styles/picasso_cubist.jpg
+34,art_styles,Renaissance classical painting,Frai/tests/back/ai/img2img/inputs/styles/renaissance_classical.jpg
+35,art_styles,Modern abstract expressionist,Frai/tests/back/ai/img2img/inputs/styles/abstract_modern.jpg
+36,art_styles,Pop art bright colors,Frai/tests/back/ai/img2img/inputs/styles/pop_art_bright.jpg
+37,art_styles,Watercolor soft technique,Frai/tests/back/ai/img2img/inputs/styles/watercolor_soft.jpg
+38,art_styles,Oil painting classical,Frai/tests/back/ai/img2img/inputs/styles/oil_classical.jpg
+39,art_styles,Charcoal drawing sketch,Frai/tests/back/ai/img2img/inputs/styles/charcoal_sketch.jpg
+40,art_styles,Pencil portrait detailed,Frai/tests/back/ai/img2img/inputs/styles/pencil_detailed.jpg
+41,art_styles,Surrealist dreamlike,Frai/tests/back/ai/img2img/inputs/styles/surrealist_dream.jpg
+42,art_styles,Minimalist clean lines,Frai/tests/back/ai/img2img/inputs/styles/minimalist_clean.jpg
+43,art_styles,Art nouveau decorative,Frai/tests/back/ai/img2img/inputs/styles/art_nouveau.jpg
+44,art_styles,Gothic dark romantic,Frai/tests/back/ai/img2img/inputs/styles/gothic_dark.jpg
+45,art_styles,Baroque ornate dramatic,Frai/tests/back/ai/img2img/inputs/styles/baroque_ornate.jpg
+46,backgrounds,Studio white seamless,Frai/tests/back/ai/img2img/inputs/backgrounds/studio_white.jpg
+47,backgrounds,Natural outdoor garden,Frai/tests/back/ai/img2img/inputs/backgrounds/outdoor_garden.jpg
+48,backgrounds,Office interior modern,Frai/tests/back/ai/img2img/inputs/backgrounds/office_modern.jpg
+49,backgrounds,Gradient color smooth,Frai/tests/back/ai/img2img/inputs/backgrounds/gradient_smooth.jpg
+50,backgrounds,Textured wall brick,Frai/tests/back/ai/img2img/inputs/backgrounds/textured_brick.jpg
+51,backgrounds,Library bookshelf academic,Frai/tests/back/ai/img2img/inputs/backgrounds/library_academic.jpg
+52,backgrounds,Urban street scene,Frai/tests/back/ai/img2img/inputs/backgrounds/urban_street.jpg
+53,backgrounds,Beach ocean horizon,Frai/tests/back/ai/img2img/inputs/backgrounds/beach_horizon.jpg
+54,backgrounds,Mountain vista scenic,Frai/tests/back/ai/img2img/inputs/backgrounds/mountain_vista.jpg
+55,backgrounds,Forest trees natural,Frai/tests/back/ai/img2img/inputs/backgrounds/forest_trees.jpg
+56,backgrounds,Abstract geometric patterns,Frai/tests/back/ai/img2img/inputs/backgrounds/abstract_geometric.jpg
+57,backgrounds,Vintage wallpaper ornate,Frai/tests/back/ai/img2img/inputs/backgrounds/vintage_wallpaper.jpg
+58,backgrounds,Industrial warehouse,Frai/tests/back/ai/img2img/inputs/backgrounds/industrial_warehouse.jpg
+59,backgrounds,Cafe interior cozy,Frai/tests/back/ai/img2img/inputs/backgrounds/cafe_cozy.jpg
+60,backgrounds,Art gallery white walls,Frai/tests/back/ai/img2img/inputs/backgrounds/gallery_white.jpg
+61,textures,Wood grain natural,Frai/tests/back/ai/img2img/inputs/textures/wood_natural.jpg
+62,textures,Marble surface veined,Frai/tests/back/ai/img2img/inputs/textures/marble_veined.jpg
+63,textures,Fabric weave cotton,Frai/tests/back/ai/img2img/inputs/textures/fabric_cotton.jpg
+64,textures,Metal brushed steel,Frai/tests/back/ai/img2img/inputs/textures/metal_steel.jpg
+65,textures,Stone rough granite,Frai/tests/back/ai/img2img/inputs/textures/stone_granite.jpg
+66,textures,Leather grain brown,Frai/tests/back/ai/img2img/inputs/textures/leather_brown.jpg
+67,textures,Ceramic glazed smooth,Frai/tests/back/ai/img2img/inputs/textures/ceramic_glazed.jpg
+68,textures,Plastic matte finish,Frai/tests/back/ai/img2img/inputs/textures/plastic_matte.jpg
+69,textures,Glass transparent clear,Frai/tests/back/ai/img2img/inputs/textures/glass_clear.jpg
+70,textures,Concrete rough urban,Frai/tests/back/ai/img2img/inputs/textures/concrete_rough.jpg
+71,textures,Sand fine beach,Frai/tests/back/ai/img2img/inputs/textures/sand_fine.jpg
+72,textures,Velvet soft luxurious,Frai/tests/back/ai/img2img/inputs/textures/velvet_soft.jpg
+73,textures,Cork natural porous,Frai/tests/back/ai/img2img/inputs/textures/cork_porous.jpg
+74,textures,Rust weathered metal,Frai/tests/back/ai/img2img/inputs/textures/rust_weathered.jpg
+75,textures,Bark tree natural,Frai/tests/back/ai/img2img/inputs/textures/bark_natural.jpg
+76,objects,Simple geometric shapes,Frai/tests/back/ai/img2img/inputs/objects/geometric_shapes.jpg
+77,objects,Everyday household items,Frai/tests/back/ai/img2img/inputs/objects/household_items.jpg
+78,objects,Furniture pieces modern,Frai/tests/back/ai/img2img/inputs/objects/furniture_modern.jpg
+79,objects,Electronic devices tech,Frai/tests/back/ai/img2img/inputs/objects/electronics_tech.jpg
+80,objects,Organic fruits vegetables,Frai/tests/back/ai/img2img/inputs/objects/organic_produce.jpg
+81,objects,Tools workshop collection,Frai/tests/back/ai/img2img/inputs/objects/tools_workshop.jpg
+82,objects,Books stack library,Frai/tests/back/ai/img2img/inputs/objects/books_stack.jpg
+83,objects,Kitchen utensils cooking,Frai/tests/back/ai/img2img/inputs/objects/kitchen_utensils.jpg
+84,objects,Sports equipment gear,Frai/tests/back/ai/img2img/inputs/objects/sports_equipment.jpg
+85,objects,Musical instruments classic,Frai/tests/back/ai/img2img/inputs/objects/instruments_classic.jpg
+86,objects,Vintage antique collection,Frai/tests/back/ai/img2img/inputs/objects/vintage_antique.jpg
+87,objects,Jewelry accessories elegant,Frai/tests/back/ai/img2img/inputs/objects/jewelry_elegant.jpg
+88,objects,Clothing fashion items,Frai/tests/back/ai/img2img/inputs/objects/clothing_fashion.jpg
+89,objects,Art supplies creative,Frai/tests/back/ai/img2img/inputs/objects/art_supplies.jpg
+90,objects,Garden tools outdoor,Frai/tests/back/ai/img2img/inputs/objects/garden_tools.jpg
+91,impressionist,Impressionist landscape monet style,Frai/tests/back/ai/img2img/inputs/styles/impressionist_landscape.jpg
+92,post_impressionist,Post impressionist artwork van gogh,Frai/tests/back/ai/img2img/inputs/styles/post_impressionist_art.jpg
+93,color_references,Warm color palette orange red,Frai/tests/back/ai/img2img/inputs/colors/warm_orange_red.jpg
+94,color_references,Cool color palette blue green,Frai/tests/back/ai/img2img/inputs/colors/cool_blue_green.jpg
+95,color_references,Monochromatic gray scale,Frai/tests/back/ai/img2img/inputs/colors/monochromatic_gray.jpg
+96,color_references,Pastel soft colors,Frai/tests/back/ai/img2img/inputs/colors/pastel_soft.jpg
+97,color_references,Vibrant saturated rainbow,Frai/tests/back/ai/img2img/inputs/colors/vibrant_rainbow.jpg
+98,color_references,Earth tones natural,Frai/tests/back/ai/img2img/inputs/colors/earth_tones.jpg
+99,color_references,Jewel tones rich,Frai/tests/back/ai/img2img/inputs/colors/jewel_tones.jpg
+100,color_references,Vintage sepia brown,Frai/tests/back/ai/img2img/inputs/colors/vintage_sepia.jpg
+101,lighting_conditions,Golden hour warm glow,Frai/tests/back/ai/img2img/inputs/lighting/golden_hour.jpg
+102,lighting_conditions,Studio dramatic shadows,Frai/tests/back/ai/img2img/inputs/lighting/dramatic_studio.jpg
+103,lighting_conditions,Natural window soft,Frai/tests/back/ai/img2img/inputs/lighting/window_natural.jpg
+104,lighting_conditions,Evening ambient mood,Frai/tests/back/ai/img2img/inputs/lighting/evening_ambient.jpg
+105,lighting_conditions,Blue hour twilight,Frai/tests/back/ai/img2img/inputs/lighting/blue_hour.jpg
+106,lighting_conditions,Candlelight intimate warm,Frai/tests/back/ai/img2img/inputs/lighting/candlelight_warm.jpg
+107,lighting_conditions,Neon colorful vibrant,Frai/tests/back/ai/img2img/inputs/lighting/neon_colorful.jpg
+108,lighting_conditions,Moonlight cool mysterious,Frai/tests/back/ai/img2img/inputs/lighting/moonlight_cool.jpg
+109,lighting_conditions,Firelight flickering orange,Frai/tests/back/ai/img2img/inputs/lighting/firelight_orange.jpg
+110,lighting_conditions,Spotlight focused dramatic,Frai/tests/back/ai/img2img/inputs/lighting/spotlight_dramatic.jpg
+111,seasonal_references,Winter snowy landscape,Frai/tests/back/ai/img2img/inputs/seasons/winter_snow.jpg
+112,seasonal_references,Spring blooming flowers,Frai/tests/back/ai/img2img/inputs/seasons/spring_flowers.jpg
+113,seasonal_references,Autumn fall colors,Frai/tests/back/ai/img2img/inputs/seasons/autumn_colors.jpg
+114,seasonal_references,Summer bright sunny,Frai/tests/back/ai/img2img/inputs/seasons/summer_sunny.jpg
+115,seasonal_references,Late autumn bare trees,Frai/tests/back/ai/img2img/inputs/seasons/late_autumn.jpg
+116,seasonal_references,Early spring budding,Frai/tests/back/ai/img2img/inputs/seasons/early_spring.jpg
+117,seasonal_references,Mid summer lush green,Frai/tests/back/ai/img2img/inputs/seasons/mid_summer.jpg
+118,seasonal_references,Deep winter frost,Frai/tests/back/ai/img2img/inputs/seasons/deep_winter.jpg
+119,aged_references,Elderly face wrinkled,Frai/tests/back/ai/img2img/inputs/age/elderly_wrinkled.jpg
+120,aged_references,Wrinkled skin texture detail,Frai/tests/back/ai/img2img/inputs/age/wrinkled_texture.jpg
+121,aged_references,Middle aged mature features,Frai/tests/back/ai/img2img/inputs/age/middle_aged.jpg
+122,aged_references,Senior distinguished gentleman,Frai/tests/back/ai/img2img/inputs/age/senior_distinguished.jpg
+123,aged_references,Aged hands weathered,Frai/tests/back/ai/img2img/inputs/age/aged_hands.jpg
+124,aged_references,Gray hair wisdom,Frai/tests/back/ai/img2img/inputs/age/gray_hair.jpg
+125,cartoons,Animated cartoon character,Frai/tests/back/ai/img2img/inputs/cartoons/animated_character.jpg
+126,cartoons,Simple line art drawing,Frai/tests/back/ai/img2img/inputs/cartoons/line_art.jpg
+127,cartoons,Disney style animation,Frai/tests/back/ai/img2img/inputs/cartoons/disney_style.jpg
+128,cartoons,Anime manga character,Frai/tests/back/ai/img2img/inputs/cartoons/anime_manga.jpg
+129,cartoons,Pixar 3d animation,Frai/tests/back/ai/img2img/inputs/cartoons/pixar_3d.jpg
+130,cartoons,Comic book illustration,Frai/tests/back/ai/img2img/inputs/cartoons/comic_book.jpg
+131,cartoons,Caricature exaggerated,Frai/tests/back/ai/img2img/inputs/cartoons/caricature_exaggerated.jpg
+132,photo_references,High quality photograph,Frai/tests/back/ai/img2img/inputs/photos/high_quality.jpg
+133,photo_references,Portrait photography professional,Frai/tests/back/ai/img2img/inputs/photos/portrait_professional.jpg
+134,photo_references,Landscape photography scenic,Frai/tests/back/ai/img2img/inputs/photos/landscape_scenic.jpg
+135,photo_references,Street photography candid,Frai/tests/back/ai/img2img/inputs/photos/street_candid.jpg
+136,photo_references,Studio photography controlled,Frai/tests/back/ai/img2img/inputs/photos/studio_controlled.jpg
+137,cartoon_styles,Disney animation classic,Frai/tests/back/ai/img2img/inputs/styles/disney_classic.jpg
+138,cartoon_styles,Anime art style detailed,Frai/tests/back/ai/img2img/inputs/styles/anime_detailed.jpg
+139,cartoon_styles,Comic book superhero,Frai/tests/back/ai/img2img/inputs/styles/comic_superhero.jpg
+140,cartoon_styles,Graphic novel sophisticated,Frai/tests/back/ai/img2img/inputs/styles/graphic_novel.jpg
+141,buildings,Modern architecture glass,Frai/tests/back/ai/img2img/inputs/buildings/modern_glass.jpg
+142,buildings,Classical architecture stone,Frai/tests/back/ai/img2img/inputs/buildings/classical_stone.jpg
+143,buildings,Gothic cathedral ornate,Frai/tests/back/ai/img2img/inputs/buildings/gothic_cathedral.jpg
+144,buildings,Art deco skyscraper,Frai/tests/back/ai/img2img/inputs/buildings/art_deco.jpg
+145,buildings,Victorian house ornate,Frai/tests/back/ai/img2img/inputs/buildings/victorian_house.jpg
+146,buildings,Brutalist concrete bold,Frai/tests/back/ai/img2img/inputs/buildings/brutalist_concrete.jpg
+147,buildings,Contemporary minimalist,Frai/tests/back/ai/img2img/inputs/buildings/contemporary_minimal.jpg
+148,buildings,Industrial warehouse utilitarian,Frai/tests/back/ai/img2img/inputs/buildings/industrial_warehouse.jpg
+149,architectural_styles,Gothic architecture medieval,Frai/tests/back/ai/img2img/inputs/styles/gothic_medieval.jpg
+150,architectural_styles,Bauhaus modernist design,Frai/tests/back/ai/img2img/inputs/styles/bauhaus_modernist.jpg
+151,architectural_styles,Frank lloyd wright organic,Frai/tests/back/ai/img2img/inputs/styles/wright_organic.jpg
+152,architectural_styles,Neoclassical columns symmetry,Frai/tests/back/ai/img2img/inputs/styles/neoclassical_columns.jpg
+153,weather_conditions,Rainy day atmosphere,Frai/tests/back/ai/img2img/inputs/weather/rainy_day.jpg
+154,weather_conditions,Foggy morning scene,Frai/tests/back/ai/img2img/inputs/weather/foggy_morning.jpg
+155,weather_conditions,Stormy clouds dramatic,Frai/tests/back/ai/img2img/inputs/weather/stormy_clouds.jpg
+156,weather_conditions,Sunny clear sky,Frai/tests/back/ai/img2img/inputs/weather/sunny_clear.jpg
+157,weather_conditions,Snowy blizzard winter,Frai/tests/back/ai/img2img/inputs/weather/snowy_blizzard.jpg
+158,time_references,Dawn early morning,Frai/tests/back/ai/img2img/inputs/time/dawn_morning.jpg
+159,time_references,Midday bright sun,Frai/tests/back/ai/img2img/inputs/time/midday_bright.jpg
+160,time_references,Sunset golden hour,Frai/tests/back/ai/img2img/inputs/time/sunset_golden.jpg
+161,time_references,Midnight night scene,Frai/tests/back/ai/img2img/inputs/time/midnight_scene.jpg
+162,time_references,Twilight blue hour,Frai/tests/back/ai/img2img/inputs/time/twilight_blue.jpg
+163,low_res,Low resolution test image,Frai/tests/back/ai/img2img/inputs/resolution/low_res_test.jpg
+164,high_res_references,High resolution reference,Frai/tests/back/ai/img2img/inputs/resolution/high_res_ref.jpg
+165,multiple_styles,Mixed artistic styles,Frai/tests/back/ai/img2img/inputs/styles/mixed_artistic.jpg
+166,emotion_references,Happy facial expression,Frai/tests/back/ai/img2img/inputs/emotions/happy_expression.jpg
+167,emotion_references,Sad facial expression,Frai/tests/back/ai/img2img/inputs/emotions/sad_expression.jpg
+168,emotion_references,Angry fierce expression,Frai/tests/back/ai/img2img/inputs/emotions/angry_fierce.jpg
+169,emotion_references,Surprised shocked expression,Frai/tests/back/ai/img2img/inputs/emotions/surprised_shocked.jpg
+170,emotion_references,Peaceful serene expression,Frai/tests/back/ai/img2img/inputs/emotions/peaceful_serene.jpg
+171,emotion_references,Confident determined expression,Frai/tests/back/ai/img2img/inputs/emotions/confident_determined.jpg
+172,emotion_references,Mysterious enigmatic expression,Frai/tests/back/ai/img2img/inputs/emotions/mysterious_enigmatic.jpg
+173,emotion_references,Playful mischievous expression,Frai/tests/back/ai/img2img/inputs/emotions/playful_mischievous.jpg
+174,material_references,Glass material transparent,Frai/tests/back/ai/img2img/inputs/materials/glass_transparent.jpg
+175,material_references,Leather material brown,Frai/tests/back/ai/img2img/inputs/materials/leather_brown.jpg
+176,material_references,Wood material natural,Frai/tests/back/ai/img2img/inputs/materials/wood_natural.jpg
+177,material_references,Metal material brushed,Frai/tests/back/ai/img2img/inputs/materials/metal_brushed.jpg
+178,material_references,Stone material rough,Frai/tests/back/ai/img2img/inputs/materials/stone_rough.jpg
+179,material_references,Fabric material woven,Frai/tests/back/ai/img2img/inputs/materials/fabric_woven.jpg
+180,material_references,Ceramic material glazed,Frai/tests/back/ai/img2img/inputs/materials/ceramic_glazed.jpg
+181,multiple_portraits,Batch portrait set 1,Frai/tests/back/ai/img2img/inputs/batch/portraits_set1.jpg
+182,multiple_portraits,Batch portrait set 2,Frai/tests/back/ai/img2img/inputs/batch/portraits_set2.jpg
+183,multiple_portraits,Batch portrait set 3,Frai/tests/back/ai/img2img/inputs/batch/portraits_set3.jpg
+184,dark_images,Very dark underexposed image,Frai/tests/back/ai/img2img/inputs/exposure/very_dark.jpg
+185,bright_images,Overexposed bright image,Frai/tests/back/ai/img2img/inputs/exposure/overexposed.jpg
+186,bright_references,Well exposed bright reference,Frai/tests/back/ai/img2img/inputs/exposure/bright_reference.jpg
+187,balanced_references,Balanced exposure reference,Frai/tests/back/ai/img2img/inputs/exposure/balanced_exposure.jpg
+188,bw_images,Black and white photograph,Frai/tests/back/ai/img2img/inputs/bw/black_white_photo.jpg
+189,abstract_images,Abstract art composition,Frai/tests/back/ai/img2img/inputs/abstract/abstract_composition.jpg
+190,realistic_references,Photorealistic reference,Frai/tests/back/ai/img2img/inputs/realistic/photorealistic_ref.jpg
+191,nature,Natural landscape scene,Frai/tests/back/ai/img2img/inputs/nature/natural_scene.jpg
+192,nature,Wildlife animals natural,Frai/tests/back/ai/img2img/inputs/nature/wildlife_animals.jpg
+193,nature,Trees forest canopy,Frai/tests/back/ai/img2img/inputs/nature/trees_canopy.jpg
+194,nature,Flowers garden bloom,Frai/tests/back/ai/img2img/inputs/nature/flowers_garden.jpg
+195,nature,Ocean waves seascape,Frai/tests/back/ai/img2img/inputs/nature/ocean_waves.jpg
+196,vehicles,Classic vintage car,Frai/tests/back/ai/img2img/inputs/vehicles/classic_vintage.jpg
+197,vehicles,Modern sports car,Frai/tests/back/ai/img2img/inputs/vehicles/modern_sports.jpg
+198,vehicles,Motorcycle sleek design,Frai/tests/back/ai/img2img/inputs/vehicles/motorcycle_sleek.jpg
+199,vehicles,Truck rugged utility,Frai/tests/back/ai/img2img/inputs/vehicles/truck_rugged.jpg
+200,vehicles,Bicycle urban commuter,Frai/tests/back/ai/img2img/inputs/vehicles/bicycle_urban.jpg

@@ -46,58 +46,29 @@ This is a resource-intensive application that requires modern hardware:
 
 ## 🛠 Installation
 
-### 1. Hugging Face Authentication
+**📖 For detailed installation instructions, see [INSTALLATION.md](INSTALLATION.md)**
 
-All models used in this project are hosted on Hugging Face. To access them:
+### Quick Start
 
-1. Create a [Hugging Face account](https://huggingface.co/join) if you don't have one
-2. Sign in to Hugging Face using the CLI:
-
+1. **Clone with submodules**:
 ```bash
-pip install huggingface_hub
-huggingface-cli login
+git clone --recursive https://github.com/Ignemia/Frai.git
+cd Frai
 ```
 
-This will prompt you to enter your Hugging Face token, which you can find in your [Hugging Face account settings](https://huggingface.co/settings/tokens).
-
-### 2. Clone the Repository
-
-This repository contains model dependencies as git submodules. When cloning, use the `--recursive` flag:
-
+2. **Install Git LFS and download models**:
 ```bash
-git clone --recursive https://github.com/your-org/frai.git
-cd frai
+git lfs install
+git lfs pull
 ```
 
-If you've already cloned the repository without the `--recursive` flag, initialize and update the submodules with:
-
+3. **Create virtual environment and install**:
 ```bash
-git submodule init
-git submodule update
-```
+python -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+# or .venv\Scripts\activate on Windows
 
-### 3. Set Up Environment
-
-```bash
-# Create a virtual environment (recommended)
-python -m venv venv
-
-# Activate virtual environment
-# On Windows:
-venv\Scripts\activate
-# On Linux:
-# source venv/bin/activate
-
-# Install setuptools first
-pip install --upgrade pip setuptools wheel
-```
-
-### 4. Installation Options
-
-#### Standard Installation
-
-```bash
-# Install using setup.py
+python install.py
 python setup.py install
 
 # Or use pip in development mode

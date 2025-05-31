@@ -16,3 +16,9 @@
 [submodule "models/multilingual-sentiment-analysis"]
 	path = models/multilingual-sentiment-analysis
 	url = https://huggingface.co/tabularisai/multilingual-sentiment-analysis
+[submodule "models/dia"]
+	path = models/dia
+	url = https://github.com/nari-labs/dia.git
+[submodule "models/Dia-1.6B"]
+	path = models/Dia-1.6B
+	url = https://huggingface.co/nari-labs/Dia-1.6B

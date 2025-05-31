@@ -1,0 +1,121 @@
+id,name,description,audio_group,expected_transcript_path,allowed_variance,evaluation_metric
+vi-1,clear_speech_short,Clear speech short clip,clean,Frai/tests/back/ai/voicein/transcripts/clear_short.txt,punctuation_only,word_error_rate <= 0.02
+vi-2,clear_speech_medium,Clear speech medium length,clean,Frai/tests/back/ai/voicein/transcripts/clear_medium.txt,punctuation_only,word_error_rate <= 0.03
+vi-3,clear_speech_long,Clear speech long form,clean,Frai/tests/back/ai/voicein/transcripts/clear_long.txt,punctuation_capitalization,word_error_rate <= 0.05
+vi-4,noisy_background_light,Light background noise,noisy,Frai/tests/back/ai/voicein/transcripts/noisy_light.txt,minor_words,word_error_rate <= 0.08
+vi-5,noisy_background_heavy,Heavy background noise,noisy,Frai/tests/back/ai/voicein/transcripts/noisy_heavy.txt,filler_words,word_error_rate <= 0.15
+vi-6,phone_call_quality,Phone call audio quality,phone_call,Frai/tests/back/ai/voicein/transcripts/phone_call.txt,minor_words,word_error_rate <= 0.10
+vi-7,accent_british,British English accent,accented,Frai/tests/back/ai/voicein/transcripts/british_accent.txt,pronunciation_variants,word_error_rate <= 0.08
+vi-8,accent_american_south,Southern American accent,accented,Frai/tests/back/ai/voicein/transcripts/southern_accent.txt,pronunciation_variants,word_error_rate <= 0.08
+vi-9,accent_non_native,Non-native English speaker,accented,Frai/tests/back/ai/voicein/transcripts/non_native.txt,pronunciation_variants,word_error_rate <= 0.12
+vi-10,fast_speech,Very fast speaking rate,speed_variants,Frai/tests/back/ai/voicein/transcripts/fast_speech.txt,minor_words,word_error_rate <= 0.10
+vi-11,slow_speech,Very slow speaking rate,speed_variants,Frai/tests/back/ai/voicein/transcripts/slow_speech.txt,punctuation_only,word_error_rate <= 0.05
+vi-12,whispered_speech,Whispered low volume speech,volume_variants,Frai/tests/back/ai/voicein/transcripts/whispered.txt,minor_words,word_error_rate <= 0.15
+vi-13,loud_speech,Very loud speech,volume_variants,Frai/tests/back/ai/voicein/transcripts/loud_speech.txt,minor_words,word_error_rate <= 0.08
+vi-14,technical_jargon,Technical terminology heavy,specialized,Frai/tests/back/ai/voicein/transcripts/technical_jargon.txt,technical_terms,word_error_rate <= 0.12
+vi-15,medical_terminology,Medical terms and phrases,specialized,Frai/tests/back/ai/voicein/transcripts/medical_terms.txt,medical_terms,word_error_rate <= 0.15
+vi-16,legal_language,Legal document reading,specialized,Frai/tests/back/ai/voicein/transcripts/legal_language.txt,legal_terms,word_error_rate <= 0.10
+vi-17,numbers_dates,Numbers and dates heavy,numerical,Frai/tests/back/ai/voicein/transcripts/numbers_dates.txt,number_format,word_error_rate <= 0.08
+vi-18,spelling_out_words,Spelled out words,numerical,Frai/tests/back/ai/voicein/transcripts/spelling_out.txt,punctuation_only,word_error_rate <= 0.05
+vi-19,multiple_speakers,Two speakers conversation,conversation,Frai/tests/back/ai/voicein/transcripts/two_speakers.txt,speaker_attribution,word_error_rate <= 0.12
+vi-20,overlapping_speech,Overlapping speech segments,conversation,Frai/tests/back/ai/voicein/transcripts/overlapping.txt,overlapped_segments,word_error_rate <= 0.20
+vi-21,lecture_format,Academic lecture recording,lecture,Frai/tests/back/ai/voicein/transcripts/academic_lecture.txt,filler_words,word_error_rate <= 0.08
+vi-22,presentation_slides,Presentation with slide references,lecture,Frai/tests/back/ai/voicein/transcripts/presentation.txt,slide_references,word_error_rate <= 0.10
+vi-23,interview_format,Interview question and answer,conversation,Frai/tests/back/ai/voicein/transcripts/interview.txt,conversational_markers,word_error_rate <= 0.08
+vi-24,poetry_reading,Poetry with rhythm and pauses,artistic,Frai/tests/back/ai/voicein/transcripts/poetry.txt,artistic_pauses,word_error_rate <= 0.06
+vi-25,song_lyrics,Sung lyrics recognition,artistic,Frai/tests/back/ai/voicein/transcripts/song_lyrics.txt,musical_elements,word_error_rate <= 0.15
+vi-26,silence_only,Complete silence audio,edge_cases,Frai/tests/back/ai/voicein/transcripts/silence.txt,none,no_transcription_output
+vi-27,very_short_clip,Single word utterance,edge_cases,Frai/tests/back/ai/voicein/transcripts/single_word.txt,none,exact_match
+vi-28,foreign_language_spanish,Spanish language speech,foreign,Frai/tests/back/ai/voicein/transcripts/spanish.txt,language_detection,language_identification
+vi-29,foreign_language_french,French language speech,foreign,Frai/tests/back/ai/voicein/transcripts/french.txt,language_detection,language_identification
+vi-30,mixed_languages,English with foreign words,foreign,Frai/tests/back/ai/voicein/transcripts/mixed_languages.txt,foreign_words,word_error_rate <= 0.12
+vi-31,distorted_audio,Audio with distortion,degraded,Frai/tests/back/ai/voicein/transcripts/distorted.txt,major_errors,word_error_rate <= 0.25
+vi-32,low_bitrate,Low quality compressed audio,degraded,Frai/tests/back/ai/voicein/transcripts/low_bitrate.txt,compression_artifacts,word_error_rate <= 0.18
+vi-33,echo_reverb,Audio with echo and reverb,degraded,Frai/tests/back/ai/voicein/transcripts/echo_reverb.txt,acoustic_effects,word_error_rate <= 0.15
+vi-34,wind_noise,Outdoor recording with wind,environmental,Frai/tests/back/ai/voicein/transcripts/wind_noise.txt,environmental_interference,word_error_rate <= 0.20
+vi-35,crowd_background,Speech in crowded environment,environmental,Frai/tests/back/ai/voicein/transcripts/crowd_background.txt,crowd_interference,word_error_rate <= 0.18
+vi-36,radio_transmission,Radio quality transmission,degraded,Frai/tests/back/ai/voicein/transcripts/radio_transmission.txt,transmission_artifacts,word_error_rate <= 0.12
+vi-37,elderly_speaker,Elderly speaker voice,demographic,Frai/tests/back/ai/voicein/transcripts/elderly_speaker.txt,age_characteristics,word_error_rate <= 0.10
+vi-38,child_speaker,Child speaker voice,demographic,Frai/tests/back/ai/voicein/transcripts/child_speaker.txt,age_characteristics,word_error_rate <= 0.12
+vi-39,hoarse_voice,Speaker with hoarse voice,voice_conditions,Frai/tests/back/ai/voicein/transcripts/hoarse_voice.txt,voice_quality,word_error_rate <= 0.15
+vi-40,stuttering_speech,Speech with stuttering,voice_conditions,Frai/tests/back/ai/voicein/transcripts/stuttering.txt,speech_disorders,word_error_rate <= 0.18
+vi-41,microphone_quality_poor,Poor microphone quality,equipment,Frai/tests/back/ai/voicein/transcripts/poor_microphone.txt,equipment_limitations,word_error_rate <= 0.12
+vi-42,microphone_quality_excellent,Excellent microphone quality,equipment,Frai/tests/back/ai/voicein/transcripts/excellent_microphone.txt,none,word_error_rate <= 0.02
+vi-43,streaming_live,Live streaming audio quality,streaming,Frai/tests/back/ai/voicein/transcripts/live_stream.txt,streaming_artifacts,word_error_rate <= 0.10
+vi-44,conference_call,Multi-participant conference call,conversation,Frai/tests/back/ai/voicein/transcripts/conference_call.txt,multiple_speakers,word_error_rate <= 0.15
+vi-45,spontaneous_speech,Spontaneous unscripted speech,natural,Frai/tests/back/ai/voicein/transcripts/spontaneous.txt,natural_speech,word_error_rate <= 0.12
+vi-46,prepared_speech,Prepared formal speech,formal,Frai/tests/back/ai/voicein/transcripts/prepared_speech.txt,formal_delivery,word_error_rate <= 0.06
+vi-47,emotional_angry,Angry emotional speech,emotional,Frai/tests/back/ai/voicein/transcripts/angry_speech.txt,emotional_intensity,word_error_rate <= 0.10
+vi-48,emotional_crying,Crying emotional speech,emotional,Frai/tests/back/ai/voicein/transcripts/crying_speech.txt,emotional_intensity,word_error_rate <= 0.20
+vi-49,acronyms_heavy,Heavy acronym usage,specialized,Frai/tests/back/ai/voicein/transcripts/acronyms.txt,acronym_expansion,word_error_rate <= 0.08
+vi-50,foreign_accents_mixed,Multiple foreign accents,accented,Frai/tests/back/ai/voicein/transcripts/mixed_accents.txt,accent_variation,word_error_rate <= 0.15
+vi-51,background_music,Speech with background music,noisy,Frai/tests/back/ai/voicein/transcripts/background_music.txt,music_interference,word_error_rate <= 0.18
+vi-52,traffic_noise,Speech with traffic noise,environmental,Frai/tests/back/ai/voicein/transcripts/traffic_noise.txt,traffic_interference,word_error_rate <= 0.16
+vi-53,air_conditioning,Speech with AC background noise,environmental,Frai/tests/back/ai/voicein/transcripts/ac_noise.txt,hvac_interference,word_error_rate <= 0.08
+vi-54,construction_noise,Speech with construction noise,environmental,Frai/tests/back/ai/voicein/transcripts/construction.txt,industrial_interference,word_error_rate <= 0.25
+vi-55,airport_announcement,Airport PA announcement,specialized,Frai/tests/back/ai/voicein/transcripts/airport_pa.txt,pa_system,word_error_rate <= 0.12
+vi-56,drive_through,Drive-through intercom quality,degraded,Frai/tests/back/ai/voicein/transcripts/drive_through.txt,intercom_quality,word_error_rate <= 0.15
+vi-57,walkie_talkie,Walkie-talkie communication,degraded,Frai/tests/back/ai/voicein/transcripts/walkie_talkie.txt,radio_communication,word_error_rate <= 0.18
+vi-58,voicemail_message,Voicemail message quality,phone_call,Frai/tests/back/ai/voicein/transcripts/voicemail.txt,voicemail_compression,word_error_rate <= 0.10
+vi-59,hands_free_device,Hands-free device audio,equipment,Frai/tests/back/ai/voicein/transcripts/hands_free.txt,hands_free_quality,word_error_rate <= 0.12
+vi-60,consistency_test_1,Consistency test repetition 1,consistency,Frai/tests/back/ai/voicein/transcripts/consistency_1.txt,none,transcription_consistency
+vi-61,consistency_test_2,Consistency test repetition 2,consistency,Frai/tests/back/ai/voicein/transcripts/consistency_2.txt,none,transcription_consistency
+vi-62,consistency_test_3,Consistency test repetition 3,consistency,Frai/tests/back/ai/voicein/transcripts/consistency_3.txt,none,transcription_consistency
+vi-63,performance_real_time,Real-time transcription test,performance,Frai/tests/back/ai/voicein/transcripts/real_time.txt,none,latency_measurement
+vi-64,performance_batch,Batch processing test,performance,Frai/tests/back/ai/voicein/transcripts/batch_processing.txt,none,throughput_measurement
+vi-65,streaming_chunks,Streaming audio chunks,streaming,Frai/tests/back/ai/voicein/transcripts/streaming_chunks.txt,chunk_boundaries,streaming_accuracy
+vi-66,regional_dialect_texas,Texas regional dialect,accented,Frai/tests/back/ai/voicein/transcripts/texas_dialect.txt,regional_variations,word_error_rate <= 0.10
+vi-67,regional_dialect_boston,Boston regional dialect,accented,Frai/tests/back/ai/voicein/transcripts/boston_dialect.txt,regional_variations,word_error_rate <= 0.10
+vi-68,regional_dialect_chicago,Chicago regional dialect,accented,Frai/tests/back/ai/voicein/transcripts/chicago_dialect.txt,regional_variations,word_error_rate <= 0.10
+vi-69,canadian_english,Canadian English accent,accented,Frai/tests/back/ai/voicein/transcripts/canadian_english.txt,canadian_variations,word_error_rate <= 0.08
+vi-70,australian_english,Australian English accent,accented,Frai/tests/back/ai/voicein/transcripts/australian_english.txt,australian_variations,word_error_rate <= 0.08
+vi-71,indian_english,Indian English accent,accented,Frai/tests/back/ai/voicein/transcripts/indian_english.txt,indian_variations,word_error_rate <= 0.12
+vi-72,south_african_english,South African English accent,accented,Frai/tests/back/ai/voicein/transcripts/south_african_english.txt,south_african_variations,word_error_rate <= 0.10
+vi-73,irish_english,Irish English accent,accented,Frai/tests/back/ai/voicein/transcripts/irish_english.txt,irish_variations,word_error_rate <= 0.09
+vi-74,scottish_english,Scottish English accent,accented,Frai/tests/back/ai/voicein/transcripts/scottish_english.txt,scottish_variations,word_error_rate <= 0.11
+vi-75,welsh_english,Welsh English accent,accented,Frai/tests/back/ai/voicein/transcripts/welsh_english.txt,welsh_variations,word_error_rate <= 0.10
+vi-76,foreign_language_german,German language speech,foreign,Frai/tests/back/ai/voicein/transcripts/german.txt,language_detection,language_identification
+vi-77,foreign_language_italian,Italian language speech,foreign,Frai/tests/back/ai/voicein/transcripts/italian.txt,language_detection,language_identification
+vi-78,foreign_language_portuguese,Portuguese language speech,foreign,Frai/tests/back/ai/voicein/transcripts/portuguese.txt,language_detection,language_identification
+vi-79,foreign_language_russian,Russian language speech,foreign,Frai/tests/back/ai/voicein/transcripts/russian.txt,language_detection,language_identification
+vi-80,foreign_language_japanese,Japanese language speech,foreign,Frai/tests/back/ai/voicein/transcripts/japanese.txt,language_detection,language_identification
+vi-81,foreign_language_mandarin,Mandarin Chinese speech,foreign,Frai/tests/back/ai/voicein/transcripts/mandarin.txt,language_detection,language_identification
+vi-82,foreign_language_korean,Korean language speech,foreign,Frai/tests/back/ai/voicein/transcripts/korean.txt,language_detection,language_identification
+vi-83,foreign_language_arabic,Arabic language speech,foreign,Frai/tests/back/ai/voicein/transcripts/arabic.txt,language_detection,language_identification
+vi-84,foreign_language_hindi,Hindi language speech,foreign,Frai/tests/back/ai/voicein/transcripts/hindi.txt,language_detection,language_identification
+vi-85,foreign_language_dutch,Dutch language speech,foreign,Frai/tests/back/ai/voicein/transcripts/dutch.txt,language_detection,language_identification
+vi-86,code_switching_spanish_english,Spanish-English code switching,foreign,Frai/tests/back/ai/voicein/transcripts/spanish_english_code.txt,code_switching,word_error_rate <= 0.15
+vi-87,code_switching_french_english,French-English code switching,foreign,Frai/tests/back/ai/voicein/transcripts/french_english_code.txt,code_switching,word_error_rate <= 0.15
+vi-88,business_terminology,Business and finance terminology,specialized,Frai/tests/back/ai/voicein/transcripts/business_terms.txt,business_jargon,word_error_rate <= 0.10
+vi-89,scientific_terminology,Scientific research terminology,specialized,Frai/tests/back/ai/voicein/transcripts/scientific_terms.txt,scientific_jargon,word_error_rate <= 0.12
+vi-90,engineering_terminology,Engineering and technical terms,specialized,Frai/tests/back/ai/voicein/transcripts/engineering_terms.txt,engineering_jargon,word_error_rate <= 0.11
+vi-91,pharmaceutical_terminology,Pharmaceutical drug names,specialized,Frai/tests/back/ai/voicein/transcripts/pharmaceutical_terms.txt,drug_names,word_error_rate <= 0.14
+vi-92,aviation_terminology,Aviation and aerospace terms,specialized,Frai/tests/back/ai/voicein/transcripts/aviation_terms.txt,aviation_jargon,word_error_rate <= 0.12
+vi-93,military_terminology,Military and defense terms,specialized,Frai/tests/back/ai/voicein/transcripts/military_terms.txt,military_jargon,word_error_rate <= 0.13
+vi-94,automotive_terminology,Automotive industry terms,specialized,Frai/tests/back/ai/voicein/transcripts/automotive_terms.txt,automotive_jargon,word_error_rate <= 0.11
+vi-95,real_estate_terminology,Real estate terms and phrases,specialized,Frai/tests/back/ai/voicein/transcripts/real_estate_terms.txt,real_estate_jargon,word_error_rate <= 0.10
+vi-96,cooking_terminology,Culinary and cooking terms,specialized,Frai/tests/back/ai/voicein/transcripts/cooking_terms.txt,culinary_terms,word_error_rate <= 0.09
+vi-97,sports_terminology,Sports commentary and terms,specialized,Frai/tests/back/ai/voicein/transcripts/sports_terms.txt,sports_jargon,word_error_rate <= 0.10
+vi-98,music_terminology,Musical instruments and theory,specialized,Frai/tests/back/ai/voicein/transcripts/music_terms.txt,musical_terms,word_error_rate <= 0.11
+vi-99,art_terminology,Art and design terminology,specialized,Frai/tests/back/ai/voicein/transcripts/art_terms.txt,artistic_terms,word_error_rate <= 0.10
+vi-100,fashion_terminology,Fashion and clothing terms,specialized,Frai/tests/back/ai/voicein/transcripts/fashion_terms.txt,fashion_terms,word_error_rate <= 0.09
+vi-101,financial_markets,Stock market and trading terms,specialized,Frai/tests/back/ai/voicein/transcripts/financial_markets.txt,financial_jargon,word_error_rate <= 0.11
+vi-102,insurance_terminology,Insurance industry terms,specialized,Frai/tests/back/ai/voicein/transcripts/insurance_terms.txt,insurance_jargon,word_error_rate <= 0.12
+vi-103,weather_terminology,Meteorological terms and forecasts,specialized,Frai/tests/back/ai/voicein/transcripts/weather_terms.txt,meteorological_terms,word_error_rate <= 0.08
+vi-104,geography_terminology,Geographic locations and terms,specialized,Frai/tests/back/ai/voicein/transcripts/geography_terms.txt,geographic_names,word_error_rate <= 0.10
+vi-105,history_terminology,Historical events and figures,specialized,Frai/tests/back/ai/voicein/transcripts/history_terms.txt,historical_names,word_error_rate <= 0.11
+vi-106,political_terminology,Political terms and names,specialized,Frai/tests/back/ai/voicein/transcripts/political_terms.txt,political_names,word_error_rate <= 0.12
+vi-107,religious_terminology,Religious terms and concepts,specialized,Frai/tests/back/ai/voicein/transcripts/religious_terms.txt,religious_terms,word_error_rate <= 0.10
+vi-108,philosophy_terminology,Philosophical concepts and terms,specialized,Frai/tests/back/ai/voicein/transcripts/philosophy_terms.txt,philosophical_terms,word_error_rate <= 0.13
+vi-109,psychology_terminology,Psychological terms and concepts,specialized,Frai/tests/back/ai/voicein/transcripts/psychology_terms.txt,psychological_terms,word_error_rate <= 0.12
+vi-110,sociology_terminology,Sociological terms and concepts,specialized,Frai/tests/back/ai/voicein/transcripts/sociology_terms.txt,sociological_terms,word_error_rate <= 0.11
+vi-111,anthropology_terminology,Anthropological terms and concepts,specialized,Frai/tests/back/ai/voicein/transcripts/anthropology_terms.txt,anthropological_terms,word_error_rate <= 0.12
+vi-112,archaeology_terminology,Archaeological terms and findings,specialized,Frai/tests/back/ai/voicein/transcripts/archaeology_terms.txt,archaeological_terms,word_error_rate <= 0.13
+vi-113,astronomy_terminology,Astronomical objects and concepts,specialized,Frai/tests/back/ai/voicein/transcripts/astronomy_terms.txt,astronomical_terms,word_error_rate <= 0.12
+vi-114,chemistry_terminology,Chemical compounds and processes,specialized,Frai/tests/back/ai/voicein/transcripts/chemistry_terms.txt,chemical_terms,word_error_rate <= 0.14
+vi-115,physics_terminology,Physics concepts and terminology,specialized,Frai/tests/back/ai/voicein/transcripts/physics_terms.txt,physics_terms,word_error_rate <= 0.13
+vi-116,biology_terminology,Biological terms and species,specialized,Frai/tests/back/ai/voicein/transcripts/biology_terms.txt,biological_terms,word_error_rate <= 0.12
+vi-117,botany_terminology,Plant species and botanical terms,specialized,Frai/tests/back/ai/voicein/transcripts/botany_terms.txt,botanical_terms,word_error_rate <= 0.14
+vi-118,zoology_terminology,Animal species and zoological terms,specialized,Frai/tests/back/ai/voicein/transcripts/zoology_terms.txt,zoological_terms,word_error_rate <= 0.13
+vi-119,ecology_terminology,Ecological systems and terms,specialized,Frai/tests/back/ai/voicein/transcripts/ecology_terms.txt,ecological_terms,word_error_rate <= 0.12
+vi-120,geology_terminology,Geological formations and terms,specialized,Frai/tests/back/ai/voicein/transcripts/geology_terms.txt,geological_terms,word_error_rate <= 0.13
