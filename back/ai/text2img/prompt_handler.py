@@ -9,15 +9,13 @@ for more complex prompt engineering if needed.
 import logging
 from typing import Dict, Optional, Any
 
-# from langchain.prompts import PromptTemplate # Example for LangChain integration
+from langchain.prompts import PromptTemplate
 
 logger = logging.getLogger(__name__)
 
 def format_text2img_prompt(
     text_prompt: str,
     negative_prompt: Optional[str] = None,
-    # style_preset: Optional[str] = None, # Example for additional params
-    # character_reference: Optional[Any] = None, # If mixing with other inputs
 ) -> Dict[str, Any]:
     """
     Formats the text prompt(s) for the FLUX.1 text-to-image model.
@@ -27,7 +25,6 @@ def format_text2img_prompt(
     Args:
         text_prompt: The main positive text prompt.
         negative_prompt: Optional negative text prompt.
-        # Other args for more complex scenarios like style presets, etc.
 
     Returns:
         A dictionary structured as expected by the FLUX.1 pipeline's input.
@@ -37,22 +34,14 @@ def format_text2img_prompt(
     if negative_prompt:
         logger.debug(f"Negative prompt: '{negative_prompt[:100]}...'")
 
-    # Basic prompt package
-    prompt_package = {
-        "prompt": text_prompt
-    }
+    # Use LangChain's PromptTemplate for basic formatting
+    template = PromptTemplate.from_template("{prompt}")
+    formatted_prompt = template.format(prompt=text_prompt)
+
+    prompt_package = {"prompt": formatted_prompt}
     if negative_prompt:
         prompt_package["negative_prompt"] = negative_prompt
 
-    # LangChain Integration Example (Illustrative - uncomment and adapt if using)
-    # if style_preset == "cinematic":
-    #     template = "A cinematic, high-quality image of {user_prompt}, photorealistic, 8k, detailed lighting."
-    #     lc_prompt = PromptTemplate.from_template(template)
-    #     prompt_package["prompt"] = lc_prompt.format(user_prompt=text_prompt)
-    # elif style_preset == "anime":
-    #     template = "Anime style drawing of {user_prompt}, vibrant colors, cel shaded."
-    #     lc_prompt = PromptTemplate.from_template(template)
-    #     prompt_package["prompt"] = lc_prompt.format(user_prompt=text_prompt)
     
     logger.info(f"Formatted text2img prompt package (simulated): {prompt_package}")
     return prompt_package 
