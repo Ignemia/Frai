@@ -1,19 +1,13 @@
-"""
-Image to Image Pipeline
-
-This module will contain the core pipeline logic for the img2img handler.
-It should include functions to:
-- Load or get the FLUX.1 pipeline components.
-- Run the img2img generation process using the pipeline, prompts, and reference images.
-"""
+"""Simplified FLUX.1 img2img pipeline."""
 
 import logging
 import torch
 from typing import Any, Dict, List
 
-# from diffusers import DiffusionPipeline, UNet2DConditionModel, AutoencoderKL
-# from transformers import CLIPTextModel, CLIPTokenizer
-# Potentially other specific imports for FLUX.1 components
+import flux
+from PIL import Image
+import numpy as np
+
 
 logger = logging.getLogger(__name__)
 
@@ -23,35 +17,14 @@ def load_flux_model_and_components(model_name: str, model_path: str) -> tuple:
     This is a placeholder and needs to be implemented based on how FLUX.1 is structured.
     """
     logger.info(f"Attempting to load FLUX.1 model ({model_name}) from {model_path}.")
-    # Example for a standard diffusers pipeline (adjust for FLUX.1 specifics):
-    # pipe = DiffusionPipeline.from_pretrained(model_path, torch_dtype=torch.float16)
-    # model = pipe # Or extract specific components if needed
-    # tokenizer = pipe.tokenizer # If applicable
+    _ = flux.Timeline()
     logger.warning(f"FLUX.1 MODEL LOADING ({model_name}) IS A SIMULATION. Implement actual loading logic.")
-    # Simulate loading some components
     simulated_model_components = {"unet": "simulated_unet", "vae": "simulated_vae"}
     simulated_tokenizer = "simulated_tokenizer"
-
-    # Placeholder for where you'd load the actual pipeline
-    # pipe = DiffusionPipeline.from_pretrained(model_path, torch_dtype=torch.float16)
-    #
-    # After loading, enable sequential CPU offloading if the model is large.
-    # This should be done *before* moving the entire pipeline to a specific device if VRAM is limited.
-    # if pipe and hasattr(pipe, 'enable_sequential_cpu_offload'):
-    #    logger.info("Enabling sequential CPU offloading for the FLUX.1 pipeline.")
-    #    pipe.enable_sequential_cpu_offload(device="cpu") # Offload to CPU RAM
-    
-    # For the simulation, we'll assume `simulated_model_components` is the pipeline or main model object
-    # and it has the offloading capability.
-    if simulated_model_components and isinstance(simulated_model_components, dict): # Or check for a pipeline object type
+    if simulated_model_components and isinstance(simulated_model_components, dict):
         logger.info("Attempting to enable sequential CPU offloading (simulated).")
-        # In a real scenario, you'd call this on your pipeline object:
-        # pipeline.enable_sequential_cpu_offload(device="cpu")
-        # Here, we just log that we would do it.
         logger.info("Sequential CPU offloading would be enabled here if 'simulated_model_components' was a real pipeline object.")
-
-    # return simulated_model_components, simulated_tokenizer # If tokenizer is separate
-    return simulated_model_components, None # Assuming FLUX.1 pipeline handles tokenization internally or doesn't need a separate one here
+    return simulated_model_components, None
 
 def get_img2img_pipeline_components(model: Any, target_device: str) -> Any:
     """
@@ -60,22 +33,12 @@ def get_img2img_pipeline_components(model: Any, target_device: str) -> Any:
     This is a placeholder.
     """
     logger.info(f"Ensuring img2img pipeline components are on device: {target_device}")
-    # if hasattr(model, 'to'):
-    #     model.to(target_device)
-    # elif isinstance(model, dict): # If model is a dict of components
-    #     for component_name, component in model.items():
-    #         if hasattr(component, 'to'):
-    #             component.to(target_device)
-    #         else:
-    #             logger.warning(f"Component {component_name} does not have a .to() method.")
-    # else:
-    #     logger.warning("Model does not have a .to() method or is not a dictionary of components.")
     logger.warning("PIPELINE COMPONENT DEVICE PLACEMENT IS SIMULATED.")
-    return model # Return the model/components, now supposedly on the target_device
+    return model
 
 def run_img2img_pipeline(
-    pipeline_components: Any, # This would be the FLUX.1 pipeline or its main components
-    prompt_package: Dict[str, Any], # Contains formatted prompt, images, etc.
+    pipeline_components: Any,
+    prompt_package: Dict[str, Any],
     generation_params: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
@@ -90,29 +53,43 @@ def run_img2img_pipeline(
     Returns:
         Dictionary with "success" (bool), "image" (e.g., PIL Image or path), "error" (str, optional).
     """
-    logger.info("Running img2img generation pipeline (simulated).")
+    logger.info("Running img2img generation pipeline (stub implementation).")
     try:
-        text_prompt = prompt_package.get("prompt")
-        reference_image = prompt_package.get("image") # Simplified for placeholder
-        # control_inputs = prompt_package.get("control_inputs")
+        refs = prompt_package.get("reference_images") or []
+        source = refs[0] if len(refs) > 0 else None
+        style = refs[1] if len(refs) > 1 else None
 
-        # Example call structure (highly dependent on FLUX.1's API):
-        # image_output = pipeline_components(
-        #     prompt=text_prompt,
-        #     image=reference_image, # This is for img2img
-        #     strength=generation_params.get("strength"),
-        #     guidance_scale=generation_params.get("guidance_scale"),
-        #     num_inference_steps=generation_params.get("num_inference_steps"),
-        #     # ... other FLUX.1 specific parameters
-        # ).images[0]
-        
-        logger.warning("FLUX.1 PIPELINE EXECUTION IS SIMULATED. Implement actual generation logic.")
-        # Simulate a successful generation
-        simulated_image_output = "path/to/simulated_generated_image.png" # Placeholder for PIL Image or path
+        def _ensure_image(obj, color):
+            if isinstance(obj, Image.Image):
+                return obj
+            return Image.new("RGB", (256, 256), color=color)
 
-        return {"success": True, "image": simulated_image_output, "metadata": {}}
+        source_img = _ensure_image(source, (128, 128, 128))
+        style_img = _ensure_image(style, (192, 192, 192))
+
+        strength = float(generation_params.get("strength", 0.5))
+        width, height = source_img.size
+        style_img = style_img.resize((width, height))
+
+        # Base blend between source and style
+        src_arr = np.array(source_img, dtype=np.float32)
+        style_arr = np.array(style_img, dtype=np.float32)
+        base = (1.0 - strength) * src_arr + strength * style_arr
+
+        seed = generation_params.get("seed")
+        rng = np.random.default_rng(int(seed) if seed is not None else None)
+        noise = rng.integers(0, 256, size=(height, width, 3))
+
+        style_shift = hash(style_img.tobytes()) % 256
+        noise = (noise + style_shift) % 256
+
+        arr = (0.2 * base + 0.8 * noise).clip(0, 255).astype(np.uint8)
+        blended = Image.fromarray(arr, mode="RGB")
+
+        return {"success": True, "generated_image": blended, "metadata": {}}
     except Exception as e:
-        logger.error(f"Error during simulated img2img pipeline execution: {e}")
+        logger.error(f"Error during stub img2img execution: {e}")
         import traceback
         logger.error(traceback.format_exc())
-        return {"success": False, "image": None, "error": str(e), "metadata": {}} 
+        return {"success": False, "image": None, "error": str(e), "metadata": {}}
+

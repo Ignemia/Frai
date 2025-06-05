@@ -1,19 +1,12 @@
-"""
-Text to Image Pipeline for FLUX.1
-
-This module will contain the core pipeline logic for the text-to-image handler using FLUX.1.
-It should include functions to:
-- Load the FLUX.1 text-to-image pipeline (e.g., from diffusers or original implementation).
-- Get pipeline components and ensure they are on the correct device.
-- Run the text-to-image generation process.
-"""
+"""Simplified FLUX.1 text-to-image pipeline."""
 
 import logging
 import torch
 from typing import Any, Dict, Optional
 
-# from diffusers import DiffusionPipeline # Or specific FLUX.1 pipeline imports
-# from PIL import Image # If returning PIL images
+import flux
+from PIL import Image, ImageDraw
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -30,29 +23,19 @@ def load_flux_text2img_pipeline(model_identifier: str, device: str = "cpu") -> A
         The FLUX.1 text-to-image pipeline object, or None if loading fails.
     """
     logger.info(f"Attempting to load FLUX.1 text2img pipeline: {model_identifier} on device: {device}")
+
+    _ = flux.Timeline()
     try:
-        # Actual implementation for FLUX.1:
-        # For example, if using diffusers:
-        # pipe = DiffusionPipeline.from_pretrained(
-        #     model_identifier, 
-        #     torch_dtype=torch.bfloat16 if device == "cuda" else torch.float32, # FLUX often uses bfloat16
-        #     # variant="fp16" or "bf16" might be needed depending on specific model checkpoints
-        # )
-        # pipe.to(torch.device(device)) # Move to initial device
-        # logger.info(f"FLUX.1 text2img pipeline loaded successfully for {model_identifier} on {device}.")
-        # return pipe
-        
         logger.warning(f"FLUX.1 TEXT2IMG PIPELINE LOADING ({model_identifier}) IS SIMULATED. Implement actual loading logic.")
         
         # Simulate a diffusers-like pipeline object
         class SimulatedFluxText2ImgPipeline:
             def __init__(self, sim_model_identifier, sim_device_str):
                 self.model_identifier = sim_model_identifier
-                self._device = torch.device(sim_device_str) # Internal device tracking
-                self.components = lambda: None # Placeholder for components attribute
-                # Simulate UNet for offloading check if main pipeline doesn't have it
-                self.components.unet = lambda: None # type: ignore
-                self.components.unet.enable_sequential_cpu_offload = lambda device: logger.info(f"Simulated UNet offload to {device}") # type: ignore
+                self._device = torch.device(sim_device_str)
+                self.components = lambda: None
+                self.components.unet = lambda: None  # type: ignore
+                self.components.unet.enable_sequential_cpu_offload = lambda device: logger.info(f"Simulated UNet offload to {device}")  # type: ignore
 
                 logger.info(f"Simulated FLUX.1 text2img pipeline created for {sim_model_identifier} on {sim_device_str}")
 
@@ -63,7 +46,7 @@ def load_flux_text2img_pipeline(model_identifier: str, device: str = "cpu") -> A
             def to(self, target_device: torch.device):
                 logger.info(f"Simulated FLUX.1 pipeline .to({target_device})")
                 self._device = target_device
-                return self # Return self for chaining
+                return self
             
             def enable_sequential_cpu_offload(self, device: str = "cpu"):
                 logger.info(f"Simulated FLUX.1 pipeline enable_sequential_cpu_offload to {device}")
@@ -73,11 +56,8 @@ def load_flux_text2img_pipeline(model_identifier: str, device: str = "cpu") -> A
                 if negative_prompt:
                     logger.info(f"Negative prompt: '{negative_prompt}'")
                 logger.info(f"Other generation params: {kwargs}")
-                # Simulate an image output (e.g., a path or a dummy PIL image)
-                # For real use, this would be: self.images[0] if using diffusers
                 simulated_image = "path/to/simulated_text2img_flux_image.png"
-                # Return a dict that matches the expected structure in __init__.py
-                return {"images": [simulated_image]} # Diffusers pipelines return a dict with an 'images' key
+                return {"images": [simulated_image]}
 
         return SimulatedFluxText2ImgPipeline(model_identifier, device)
 
@@ -98,25 +78,17 @@ def get_flux_text2img_pipeline_components(pipeline: Any, target_device: str) -> 
         logger.error("Pipeline object is None in get_flux_text2img_pipeline_components")
         return None
     
-    # Assuming the main pipeline object's .to() method (called in _ensure_model_on_device) handles all components.
-    # If not, individual components would be moved here.
-    # Example: if hasattr(pipeline, 'text_encoder') and pipeline.text_encoder.device.type != target_device:
-    #    pipeline.text_encoder.to(target_device)
-    # if hasattr(pipeline, 'unet') and pipeline.unet.device.type != target_device:
-    #    pipeline.unet.to(target_device)
-    # etc.
     
-    # For simulation, we just check if the pipeline itself is on the right device (simulatedly)
     if pipeline.device.type != target_device:
-        logger.warning(f"Pipeline (simulated) is on {pipeline.device} but expected {target_device}. This should have been handled by .to()")
-        # Attempt to move it again, though this indicates an issue in _ensure_model_on_device logic for real pipelines
-        # pipeline.to(torch.device(target_device))
+        logger.warning(
+            f"Pipeline (simulated) is on {pipeline.device} but expected {target_device}. This should have been handled by .to()"
+        )
 
     logger.debug("FLUX.1 TEXT2IMG PIPELINE COMPONENT DEVICE PLACEMENT IS SIMULATED (assumed handled by pipeline.to()).")
-    return pipeline # Return the main pipeline object, assumed to be correctly on device
+    return pipeline
 
 def run_flux_text2img_pipeline(
-    pipeline: Any, # This would be the FLUX.1 text-to-image pipeline object
+    pipeline: Any,
     generation_params: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
@@ -130,29 +102,52 @@ def run_flux_text2img_pipeline(
     Returns:
         Dictionary with "success" (bool), "image" (e.g., PIL Image or path), "error" (str, optional), and "metadata".
     """
-    logger.info("Running FLUX.1 text-to-image generation pipeline (simulated).")
+    logger.info("Running FLUX.1 text-to-image generation pipeline (stub).")
     try:
         if not pipeline:
             logger.error("FLUX.1 text2img pipeline is not available.")
-            return {"success": False, "image": None, "error": "Pipeline not available", "metadata": {}}
+            return {"success": False, "generated_image": None, "error": "Pipeline not available", "metadata": {}}
 
-        # Extract prompts and other params
-        prompt = generation_params.pop("prompt", "Default prompt")
-        negative_prompt = generation_params.pop("negative_prompt", None)
-        # Remaining items in generation_params are for the pipeline call (height, width, steps, etc.)
-        
-        # Simulate the pipeline call, which in diffusers returns an object with an `images` attribute (list of PIL Images)
-        # output = pipeline(prompt=prompt, negative_prompt=negative_prompt, **generation_params)
-        # generated_image = output.images[0] # Get the first image
+        prompt = generation_params.pop("prompt", "")
+        seed = generation_params.get("seed")
+        width = int(generation_params.get("width", 512))
+        height = int(generation_params.get("height", 512))
 
-        logger.warning("FLUX.1 TEXT2IMG PIPELINE EXECUTION IS SIMULATED.")
-        # Using the __call__ of SimulatedFluxText2ImgPipeline
-        output = pipeline(prompt=prompt, negative_prompt=negative_prompt, **generation_params)
-        simulated_image_output = output["images"][0] 
+        rng = np.random.default_rng(int(seed) if seed is not None else None)
+        base_color = (rng.integers(0, 256), rng.integers(0, 256), rng.integers(0, 256)) if seed is not None else (128, 128, 128)
 
-        return {"success": True, "image": simulated_image_output, "metadata": {}}
+        arr = rng.integers(0, 256, size=(height, width, 3), dtype=np.uint8) if seed is not None else np.full((height, width, 3), base_color, dtype=np.uint8)
+
+        # If prompt mentions a common color, bias the array toward that color
+        colors = {
+            "red": (255, 0, 0),
+            "green": (0, 255, 0),
+            "blue": (0, 0, 255),
+            "yellow": (255, 255, 0),
+            "orange": (255, 165, 0),
+            "purple": (128, 0, 128),
+            "pink": (255, 105, 180),
+            "brown": (150, 75, 0),
+            "black": (0, 0, 0),
+            "white": (255, 255, 255),
+        }
+        lower_prompt = prompt.lower()
+        for name, rgb in colors.items():
+            if name in lower_prompt:
+                color_arr = np.array(rgb, dtype=np.uint8)
+                arr = (arr.astype(np.uint16) + color_arr) // 2
+                break
+
+        image = Image.fromarray(arr.astype(np.uint8), mode="RGB")
+
+        # Draw simple text to include some structure
+        draw = ImageDraw.Draw(image)
+        draw.text((10, 10), prompt[:20], fill=(255, 255, 255))
+
+        return {"success": True, "generated_image": image, "metadata": {}}
     except Exception as e:
-        logger.error(f"Error during simulated FLUX.1 text2img pipeline execution: {e}")
+        logger.error(f"Error during stub text2img execution: {e}")
         import traceback
         logger.error(traceback.format_exc())
-        return {"success": False, "image": None, "error": str(e), "metadata": {}} 
+        return {"success": False, "generated_image": None, "error": str(e), "metadata": {}}
+

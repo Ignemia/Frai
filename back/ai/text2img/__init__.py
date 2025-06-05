@@ -14,7 +14,7 @@ For text to image generation we use Flux.1 model from models/FLUX.1-dev.
 """
 import logging
 import os
-from typing import Dict, Optional, Any, List # Added List for consistency
+from typing import Any, Dict, List, Optional
 import torch
 
 from .pipeline import load_flux_text2img_pipeline, run_flux_text2img_pipeline, get_flux_text2img_pipeline_components
@@ -32,28 +32,28 @@ class Text2ImgAI:
     """
     
     def __init__(self, model_name: Optional[str] = None, model_path: Optional[str] = None):
-        # Resolve model path using configuration
         if model_name is None:
             self.model_path = get_text2img_model_path()
-            self.model_name = "black-forest-labs/FLUX.1-dev"  # Keep original name for identification
+            self.model_name = "black-forest-labs/FLUX.1-dev"
         else:
             self.model_path, _ = get_model_path(model_name)
             self.model_name = model_name
-        
-        # Override with explicit model_path if provided
+
         if model_path is not None:
             self.model_path = model_path
-        self.pipeline = None # This will hold the FLUX.1 text-to-image pipeline
+        self.pipeline = None
+        self.model = None
+        self.tokenizer = None
+        self.scheduler = None
         self.is_loaded = False
         self.vram_device = "cuda" if torch.cuda.is_available() else "cpu"
         self.ram_device = "cpu"
 
         self.generation_params = {
-            # Example parameters, adjust based on FLUX.1 needs for text2img
-            "guidance_scale": 7.0, # Common for text2img
+            "guidance_scale": 7.0,
             "num_inference_steps": 25,
-            "height": 1024, # Default FLUX.1 resolution
-            "width": 1024   # Default FLUX.1 resolution
+            "height": 1024,
+            "width": 1024,
         }
         
         self._load_model_to_ram()
@@ -65,12 +65,10 @@ class Text2ImgAI:
             if self.pipeline:
                 self.is_loaded = True
                 logger.info(f"FLUX.1 text2img pipeline ({self.model_name}) loaded to RAM successfully.")
-                # Enable sequential CPU offloading
                 if hasattr(self.pipeline, 'enable_sequential_cpu_offload'):
                     logger.info(f"Enabling sequential CPU offloading for {self.model_name}.")
                     self.pipeline.enable_sequential_cpu_offload(device="cpu")
                 elif hasattr(self.pipeline, 'components') and hasattr(self.pipeline.components, 'unet') and hasattr(self.pipeline.components.unet, 'enable_sequential_cpu_offload'):
-                     # Fallback if offload is on a sub-component like UNet for some pipelines
                     logger.info(f"Enabling sequential CPU offloading on UNet for {self.model_name}.")
                     self.pipeline.components.unet.enable_sequential_cpu_offload(device="cpu")
                 else:
@@ -87,7 +85,6 @@ class Text2ImgAI:
             logger.error("FLUX.1 text2img pipeline not loaded, cannot move device.")
             return False
         try:
-            # Diffusers pipelines usually have a .to() method
             if self.pipeline.device.type != target_device:
                  logger.info(f"Moving FLUX.1 text2img pipeline from {self.pipeline.device} to {target_device}.")
                  self.pipeline.to(torch.device(target_device))
@@ -129,9 +126,6 @@ class Text2ImgAI:
             if not self._ensure_model_on_device(target_device_for_generation):
                 raise RuntimeError(f"Failed to move FLUX.1 text2img model to {target_device_for_generation}.")
             
-            # The get_flux_text2img_pipeline_components might not be needed if self.pipeline is the full pipeline object
-            # and device transfer is handled by self.pipeline.to(). For now, assuming it might be used
-            # for consistency or if sub-components need specific handling.
             active_pipeline = get_flux_text2img_pipeline_components(self.pipeline, target_device_for_generation)
             if not active_pipeline:
                  raise RuntimeError(f"Failed to get active pipeline components on {target_device_for_generation}")
@@ -142,18 +136,14 @@ class Text2ImgAI:
             if generation_params_override:
                 current_gen_params.update(generation_params_override)
             
-            # Add prompts to generation parameters for run_flux_text2img_pipeline
             current_gen_params['prompt'] = prompt_package['prompt']
             if prompt_package.get('negative_prompt'):
                  current_gen_params['negative_prompt'] = prompt_package['negative_prompt']
 
             gen_result = run_flux_text2img_pipeline(
-                pipeline=active_pipeline, # This should be the pipeline object itself
-                generation_params=current_gen_params
+                pipeline=active_pipeline,
+                generation_params=current_gen_params,
             )
-            
-            # run_flux_text2img_pipeline should return a dict like: 
-            # {"success": True, "image": pil_image_or_path, "metadata": {}}
             if gen_result.get("success"):
                  gen_result["metadata"] = gen_result.get("metadata", {})
                  gen_result["metadata"]["model_name"] = self.model_name
@@ -176,7 +166,6 @@ class Text2ImgAI:
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
 
-# --- Global Instance and Accessor Functions ---
 _text2img_ai_instance: Optional[Text2ImgAI] = None
 
 def get_text2img_ai_instance(model_name: Optional[str] = None, model_path: Optional[str] = None) -> Text2ImgAI:
@@ -229,3 +218,45 @@ def generate_image_from_text_api(
         negative_prompt=negative_prompt,
         generation_params_override=generation_params_override
     )
+
+
+# Legacy helper names used in the tests
+def initialize_txt2img_system(model_name: Optional[str] = None, model_path: Optional[str] = None) -> bool:
+    return initialize_text2img_system(model_name=model_name, model_path=model_path)
+
+
+def get_txt2img_ai_instance(model_name: Optional[str] = None, model_path: Optional[str] = None) -> Text2ImgAI:
+    return get_text2img_ai_instance(model_name=model_name, model_path=model_path)
+
+
+def generate_image_from_text(
+    prompt: str,
+    negative_prompt: Optional[str] = None,
+    **generation_kwargs: Any,
+) -> Dict[str, Any]:
+    text2img_ai = get_txt2img_ai_instance()
+    if not text2img_ai.is_loaded:
+        return {
+            "success": False,
+            "error": "Text2Img model not ready or failed to load.",
+            "generated_image": None,
+            "metadata": {},
+        }
+
+    if not prompt:
+        return {"success": False, "error": "Prompt is empty", "generated_image": None, "metadata": {}}
+
+    result = text2img_ai.generate_image_from_text(
+        text_prompt=prompt,
+        negative_prompt=negative_prompt,
+        generation_params_override=generation_kwargs or None,
+    )
+
+    if result.get("success"):
+        if "generated_image" not in result:
+            result["generated_image"] = result.pop("image", None)
+        if generation_kwargs:
+            result["parameters_used"] = generation_kwargs
+
+    return result
+
